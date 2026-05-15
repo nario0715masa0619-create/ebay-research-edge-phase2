@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 @dataclass
@@ -19,3 +20,122 @@ class EbayApiItemDetail:
     return_terms: Dict[str, Any] = field(default_factory=dict)
     estimated_import_costs: Dict[str, Any] = field(default_factory=dict)
     raw_data: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class SourceItem:
+    source_item_id: str
+    source_platform: str
+    source_url: str
+    source_title: str
+    source_price_jpy: float
+    source_shipping_jpy: float = 0.0
+    source_stock_status: str = "in_stock"
+    source_purchase_type: str = "buy_now"
+    source_image_urls: List[str] = field(default_factory=list)
+    source_raw_json: Dict[str, Any] = field(default_factory=dict)
+    collected_at: datetime = field(default_factory=datetime.now)
+    processed_at: Optional[datetime] = None
+
+@dataclass
+class ProductCandidate:
+    candidate_id: str
+    source_item_id: str
+    source_platform: str
+    sku: str
+    
+    # Platform Info
+    source_url: str
+    source_title: str
+    source_price_jpy: float
+    source_shipping_jpy: float = 0.0
+    source_stock_status: str = "in_stock"
+    source_purchase_type: str = "buy_now"
+    image_urls: List[str] = field(default_factory=list)
+    condition_source: str = "new"
+    
+    # Classification
+    pipeline_type: str = "auto"  # auto, manual_preban, manual_review
+    decision_type: str = "excluded"  # candidate, excluded, review_required, listing_ready
+    status: str = "collected"  # collected, normalized, researched, candidate, listed, etc.
+    
+    # Normalized Data
+    normalized_title: str = ""
+    brand: str = ""
+    series: str = ""
+    character: str = ""
+    product_type: str = ""
+    ebay_title_candidate: str = ""
+    
+    # Marketplace Metadata
+    ebay_category_id: Optional[str] = None
+    category_tree_id: Optional[str] = None
+    category_tree_version: Optional[str] = None
+    category_confidence: float = 0.0
+    
+    ebay_condition: Optional[str] = None
+    condition_descriptor_json: Dict[str, Any] = field(default_factory=dict)
+    condition_confidence: float = 0.0
+    
+    ebay_aspects_json: Dict[str, Any] = field(default_factory=dict)
+    missing_required_aspects: List[str] = field(default_factory=list)
+    missing_recommended_aspects: List[str] = field(default_factory=list)
+    
+    listing_readiness_status: str = "not_checked"
+    listing_blockers: List[str] = field(default_factory=list)
+    publish_readiness: bool = False
+    
+    inventory_item_draft_json: Dict[str, Any] = field(default_factory=dict)
+    offer_draft_json: Dict[str, Any] = field(default_factory=dict)
+    
+    # Financials
+    expected_sale_price_usd: float = 0.0
+    expected_sale_price_jpy: float = 0.0
+    expected_profit_jpy: float = 0.0
+    expected_profit_rate: float = 0.0
+    standard_score: float = 0.0
+    score_grade: str = "E"
+    
+    # Decisions
+    auto_listable: bool = False
+    exclude_reason: Optional[str] = None
+    review_reason: Optional[str] = None
+    decision_reason_codes: List[str] = field(default_factory=list)
+    
+    # Metadata
+    evidence_json: Dict[str, Any] = field(default_factory=dict)
+    scoring_json: Dict[str, Any] = field(default_factory=dict)
+    last_rule_version: str = "v1"
+    
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+    last_checked_at: Optional[datetime] = None
+
+@dataclass
+class CandidateEvidence:
+    evidence_id: str
+    candidate_id: str
+    evidence_type: str  # normalization, pricing, shipping, total_cost, score, etc.
+    evidence_payload: Dict[str, Any]
+    rule_version: str = "v1"
+    created_at: datetime = field(default_factory=datetime.now)
+
+@dataclass
+class JobRun:
+    run_id: str
+    job_name: str
+    job_scope: str = "all"
+    status: str = "running"  # running, completed, failed
+    context: Dict[str, Any] = field(default_factory=dict)
+    
+    processed_count: int = 0
+    success_count: int = 0
+    excluded_count: int = 0
+    review_count: int = 0
+    candidate_count: int = 0
+    ready_count: int = 0
+    blocked_count: int = 0
+    error_count: int = 0
+    error_summary: Optional[str] = None
+    
+    started_at: datetime = field(default_factory=datetime.now)
+    finished_at: Optional[datetime] = None
