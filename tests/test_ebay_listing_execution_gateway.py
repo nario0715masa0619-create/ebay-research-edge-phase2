@@ -125,7 +125,8 @@ def test_missing_policy_review(gateway, repos):
     repos["candidate"].upsert(candidate)
     
     res = gateway.execute_listing_candidate(ListingExecutionRequest(candidate_id="CAND-007"))
-    assert res.execution_status == "skipped"
+    assert res.execution_status == "review_required"
+    assert res.review_required_flag is True
     assert "missing_fulfillment_policy" in res.execution_reason_codes
 
 # 8. 一時的 API エラーで retryable_error に分類される

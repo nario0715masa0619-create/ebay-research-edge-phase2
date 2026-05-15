@@ -141,11 +141,29 @@ class JobRun:
     review_required_count: int = 0
     fatal_error_count: int = 0
     
+    # Monitoring Specific
+    keep_count: int = 0
+    revised_count: int = 0
+    zeroed_count: int = 0
+    withdrawn_count: int = 0
+    
     error_count: int = 0
     error_summary: Optional[str] = None
     
     started_at: datetime = field(default_factory=datetime.now)
     finished_at: Optional[datetime] = None
+
+@dataclass
+class MonitoringEvent:
+    event_id: str
+    candidate_id: str
+    sku: str
+    event_scope: str # source, marketplace, internal
+    event_type: str # price_change, stock_change, url_dead, etc.
+    before_value: str
+    after_value: str
+    action_taken: str # keep, revise, withdraw, etc.
+    created_at: datetime = field(default_factory=datetime.now)
 
 @dataclass
 class EbayListing:

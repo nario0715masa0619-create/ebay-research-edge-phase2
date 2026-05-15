@@ -40,3 +40,13 @@ class EbayInventoryApiClient:
             "status_code": 200,
             "listingId": f"WITHDRAWN-{offer_id}"
         }
+
+    def bulk_update_price_quantity(self, sku: str, offer_id: str, price: Optional[float], quantity: Optional[int]) -> Dict[str, Any]:
+        # Mock successful response
+        return {
+            "status_code": 200,
+            "sku": sku,
+            "offerId": offer_id,
+            "updated_price": price,
+            "updated_quantity": quantity
+        }

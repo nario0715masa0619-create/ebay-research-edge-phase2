@@ -32,13 +32,14 @@ class ListingExecutionGateway:
             return ListingExecutionResult(candidate_id=request.candidate_id, sku="unknown", execution_status="failed", error_summary="Candidate not found")
 
         # 2. execution guard
-        is_valid, blockers = self.guard.validate(candidate, request)
-        if not is_valid:
+        guard_res = self.guard.validate(candidate, request)
+        if not guard_res.allowed_flag:
             return ListingExecutionResult(
                 candidate_id=candidate.candidate_id,
                 sku=candidate.sku,
-                execution_status="skipped",
-                execution_reason_codes=blockers,
+                execution_status=guard_res.recommended_status,
+                execution_reason_codes=guard_res.guard_blockers,
+                review_required_flag=guard_res.recommended_status == "review_required",
                 error_summary="Guard failed"
             )
 

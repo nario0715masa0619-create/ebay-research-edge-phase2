@@ -1,0 +1,23 @@
+from typing import Dict, Any, Tuple
+
+class ReviseRetryClassifier:
+    def classify(self, error_res: Dict[str, Any]) -> Tuple[str, bool, bool]:
+        """
+        Returns (classification, retryable_flag, review_required_flag)
+        """
+        error_msg = str(error_res.get("error_summary", "")).lower()
+        
+        # Section 16: ReviseRetryClassifier 設計
+        
+        # retryable
+        retryable_keywords = ["timeout", "network", "temporary", "500", "503"]
+        if any(k in error_msg for k in retryable_keywords):
+            return "retryable", True, False
+            
+        # review_required
+        review_keywords = ["policy", "location", "offer status", "quantity zero"]
+        if any(k in error_msg for k in review_keywords):
+            return "review_required", False, True
+            
+        # fatal (default)
+        return "fatal", False, False
