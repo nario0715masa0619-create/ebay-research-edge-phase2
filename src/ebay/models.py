@@ -134,8 +134,40 @@ class JobRun:
     candidate_count: int = 0
     ready_count: int = 0
     blocked_count: int = 0
+    
+    # Execution Specific
+    skipped_count: int = 0
+    retryable_error_count: int = 0
+    review_required_count: int = 0
+    fatal_error_count: int = 0
+    
     error_count: int = 0
     error_summary: Optional[str] = None
     
     started_at: datetime = field(default_factory=datetime.now)
     finished_at: Optional[datetime] = None
+
+@dataclass
+class EbayListing:
+    sku: str
+    candidate_id: str
+    marketplace_id: str
+    
+    inventory_item_status: str = "not_created" # not_created, created, updated, failed
+    offer_id: Optional[str] = None
+    offer_status: str = "not_created" # not_created, created, published, failed
+    listing_id: Optional[str] = None
+    
+    listing_price_usd: float = 0.0
+    quantity: int = 1
+    
+    merchant_location_key: Optional[str] = None
+    fulfillment_policy_id: Optional[str] = None
+    payment_policy_id: Optional[str] = None
+    return_policy_id: Optional[str] = None
+    
+    last_publish_attempt_at: Optional[datetime] = None
+    last_publish_error: Optional[str] = None
+    
+    listed_at: Optional[datetime] = None
+    updated_at: datetime = field(default_factory=datetime.now)

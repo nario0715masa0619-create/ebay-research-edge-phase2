@@ -29,6 +29,10 @@ class JobRunRepository:
             run.candidate_count = metrics.get("candidate_count", 0)
             run.ready_count = metrics.get("ready_count", 0)
             run.blocked_count = metrics.get("blocked_count", 0)
+            run.skipped_count = metrics.get("skipped_count", 0)
+            run.retryable_error_count = metrics.get("retryable_error_count", 0)
+            run.review_required_count = metrics.get("review_required_count", 0)
+            run.fatal_error_count = metrics.get("fatal_error_count", 0)
             run.error_count = metrics.get("error_count", 0)
             run.error_summary = error_summary
             run.finished_at = datetime.now()
@@ -43,6 +47,10 @@ class JobRunRepository:
             run.candidate_count += delta_metrics.get("candidate_count", 0)
             run.ready_count += delta_metrics.get("ready_count", 0)
             run.blocked_count += delta_metrics.get("blocked_count", 0)
+            run.skipped_count += delta_metrics.get("skipped_count", 0)
+            run.retryable_error_count += delta_metrics.get("retryable_error_count", 0)
+            run.review_required_count += delta_metrics.get("review_required_count", 0)
+            run.fatal_error_count += delta_metrics.get("fatal_error_count", 0)
             run.error_count += delta_metrics.get("error_count", 0)
 
     def get_run(self, run_id: str) -> Optional[JobRun]:
