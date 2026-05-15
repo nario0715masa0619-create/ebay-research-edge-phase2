@@ -1,7 +1,7 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 from .browse_client import EbayBrowseClient
 from .snapshot_adapters import SnapshotAdapter
-from src.shipping.resolver import resolve_shipping_cost
+from src.shipping.resolver import resolve_shipping_cost, normalize_carrier, ALLOWED_CARRIERS, CarrierNormalized
 from src.shipping.models import ShippingResult, ShippingResolutionStatus
 
 class ShippingPipeline:
@@ -9,44 +9,97 @@ class ShippingPipeline:
         self.client = client
         self.adapter = SnapshotAdapter()
 
-    def should_fetch_detail(self, search_snapshot: Dict[str, Any]) -> bool:
+    def should_fetch_detail(self, search_snapshot: Optional[Dict[str, Any]], mode: str = "balanced") -> Tuple[bool, List[str]]:
         """
-        Determine if we need more info from getItem based on carrier constraints and accuracy.
+        Determine if we need more info from getItem based on policies and accuracy requirements.
+        Returns (should_fetch: bool, reasons: list[str])
         """
+        reasons = []
+
+        if mode == "always_detail":
+            return True, ["always_detail_mode"]
+        
+        if mode == "search_only":
+            return False, []
+
+        if not search_snapshot:
+            return True, ["no_search_snapshot"]
+
         options = search_snapshot.get("shippingOptions", [])
         if not options:
-            return True
-        
-        # Check carrier normalization for options in search
-        from src.shipping.resolver import normalize_carrier, ALLOWED_CARRIERS, CarrierNormalized
-        
+            return True, ["no_shipping_options"]
+
         allowed_count = 0
         has_unknown = False
         has_calculated = False
         has_missing_service_name = False
+        has_local_pickup = False
+        allowed_fixed_count = 0
+        cheapest_is_disallowed = False
 
+        processed_options = []
         for opt in options:
             service_name = opt.get("shippingServiceCode", "")
             if not service_name:
                 has_missing_service_name = True
             
             carrier = normalize_carrier(service_name)
-            if carrier.value in ALLOWED_CARRIERS:
+            cost_type = opt.get("shippingCostType") or opt.get("type") or "UNKNOWN"
+            cost_value = float(opt.get("shippingCost", {}).get("value", 0))
+            
+            is_local_pickup = "LOCALPICKUP" in service_name.upper() or "LOCAL PICKUP" in service_name.upper()
+            if is_local_pickup:
+                has_local_pickup = True
+            
+            is_allowed = carrier.value in ALLOWED_CARRIERS
+            if is_allowed and not is_local_pickup:
                 allowed_count += 1
+                if cost_type == "FIXED":
+                    allowed_fixed_count += 1
+            
             if carrier == CarrierNormalized.UNKNOWN:
                 has_unknown = True
             
-            if opt.get("shippingCostType") == "CALCULATED":
+            if cost_type == "CALCULATED":
                 has_calculated = True
 
-        # Trigger detail fetch if:
-        if allowed_count == 0: return True # No allowed carrier in search
-        if has_unknown: return True       # Some options are unknown carrier
-        if has_calculated: return True    # Some options are calculated
-        if has_missing_service_name: return True # Missing service name info
+            processed_options.append({
+                "carrier": carrier,
+                "is_allowed": is_allowed,
+                "cost_value": cost_value,
+                "is_local_pickup": is_local_pickup
+            })
+
+        # Check if cheapest is disallowed
+        if processed_options:
+            available = [o for o in processed_options if not o["is_local_pickup"]]
+            if available:
+                cheapest = min(available, key=lambda x: x["cost_value"])
+                if not cheapest["is_allowed"]:
+                    cheapest_is_disallowed = True
+
+        # Evaluation
+        if allowed_count == 0: reasons.append("no_allowed_carrier")
+        if has_unknown: reasons.append("unknown_carrier")
+        if has_missing_service_name: reasons.append("missing_service_name")
+        if allowed_count > 0 and allowed_fixed_count == 0: reasons.append("calculated_shipping_only")
+        if len(options) > 0 and allowed_count == 0 and has_local_pickup: reasons.append("local_pickup_only")
+        if cheapest_is_disallowed: reasons.append("disallowed_cheapest_needs_verification")
         
-        # Also check for Tax/VAT context (usually missing in search)
-        return True # Default to True for best accuracy per spec
+        # Mode specific extra checks
+        if mode == "aggressive_accuracy":
+            if allowed_count > 0:
+                reasons.append("aggressive_accuracy_mode_check")
+        
+        # Tax / VAT / Import charges checks (usually search lacks these)
+        # In balanced mode, we might still want detail if we need high accuracy for taxes
+        # But per spec, we only take it if one of the above reasons matched.
+        # Actually, let's add one more check for tax if we are in aggressive mode.
+        if mode == "aggressive_accuracy" and "tax_context_missing" not in reasons:
+             reasons.append("tax_context_missing")
+
+        should_fetch = len(reasons) > 0
+        return should_fetch, reasons
 
     def resolve_item_shipping_via_api(
         self, 
@@ -56,30 +109,39 @@ class ShippingPipeline:
         zip_code: str = None,
         quantity: int = 1,
         search_item_summary: Optional[Any] = None,
-        fallback_value: Optional[float] = None
+        fallback_value: Optional[float] = None,
+        mode: str = "balanced"
     ) -> ShippingResult:
         """
-        Main pipeline flow:
-        1. Adapt search summary (if provided)
-        2. Decide if detail fetch is needed
-        3. Fetch detail (if needed or always)
-        4. Resolve using resolver
+        Optimized flow:
+        1. Adapt search
+        2. Check should_fetch_detail
+        3. Fetch detail only if needed
+        4. Resolve
         """
+        detail_fetch_attempted = False
+        detail_fetch_succeeded = False
+        detail_fetch_reasons = []
+        
         search_snapshot = None
         if search_item_summary:
             search_snapshot = self.adapter.adapt_search_item_summary_to_snapshot(search_item_summary)
 
-        # Always try to fetch detail for accuracy if item_id is provided
-        detail_snapshot = None
-        try:
-            detail_data = self.client.get_item_with_context(item_id, country, zip_code, marketplace_id)
-            if detail_data:
-                detail_snapshot = self.adapter.adapt_detail_item_to_snapshot(detail_data)
-        except Exception as e:
-            # If detail fetch fails, we continue with search_snapshot only
-            pass
+        should_fetch, reasons = self.should_fetch_detail(search_snapshot, mode)
+        detail_fetch_reasons = reasons
 
-        return resolve_shipping_cost(
+        detail_snapshot = None
+        if should_fetch:
+            detail_fetch_attempted = True
+            try:
+                detail_data = self.client.get_item_with_context(item_id, country, zip_code, marketplace_id)
+                if detail_data:
+                    detail_fetch_succeeded = True
+                    detail_snapshot = self.adapter.adapt_detail_item_to_snapshot(detail_data)
+            except Exception:
+                pass
+
+        result = resolve_shipping_cost(
             item_id=item_id,
             marketplace_id=marketplace_id,
             delivery_country=country,
@@ -89,17 +151,32 @@ class ShippingPipeline:
             detail_snapshot=detail_snapshot,
             fallback_shipping_value=fallback_value
         )
+        
+        # Add metadata
+        result.detail_fetch_attempted = detail_fetch_attempted
+        result.detail_fetch_succeeded = detail_fetch_succeeded
+        result.detail_fetch_reasons = detail_fetch_reasons
+        result.pipeline_mode = mode
+        
+        return result
 
-    def enrich_item_with_shipping(self, item_summary: Any, country: str, marketplace_id: str) -> Dict[str, Any]:
-        """Convenience method to add shipping info to a search item result"""
+    def enrich_item_with_shipping(self, item_summary: Any, country: str, marketplace_id: str, mode: str = "balanced") -> Dict[str, Any]:
+        """Convenience method to add shipping info and metadata to a search item result"""
         result = self.resolve_item_shipping_via_api(
             item_id=item_summary.item_id,
             marketplace_id=marketplace_id,
             country=country,
-            search_item_summary=item_summary
+            search_item_summary=item_summary,
+            mode=mode
         )
         
         return {
             "item_id": item_summary.item_id,
-            "shipping_info": result
+            "shipping_info": result,
+            "pipeline_meta": {
+                "detail_fetch_attempted": result.detail_fetch_attempted,
+                "detail_fetch_succeeded": result.detail_fetch_succeeded,
+                "detail_fetch_reasons": result.detail_fetch_reasons,
+                "mode": result.pipeline_mode
+            }
         }

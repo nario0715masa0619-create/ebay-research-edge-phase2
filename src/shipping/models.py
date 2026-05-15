@@ -63,5 +63,11 @@ class ShippingResult:
     raw_shipping_options_snapshot: List[Dict[str, Any]] = field(default_factory=list)
     notes: List[str] = field(default_factory=list)
 
+    # Pipeline metadata
+    detail_fetch_attempted: bool = False
+    detail_fetch_succeeded: bool = False
+    detail_fetch_reasons: List[str] = field(default_factory=list)
+    pipeline_mode: str = "balanced"
+
     def add_note(self, note: str):
         self.notes.append(note)
