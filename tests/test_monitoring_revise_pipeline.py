@@ -8,6 +8,7 @@ from src.repositories.product_candidate_repository import ProductCandidateReposi
 from src.repositories.candidate_evidence_repository import CandidateEvidenceRepository
 from src.repositories.job_run_repository import JobRunRepository
 from src.repositories.ebay_listing_repository import EbayListingRepository
+from src.repositories.monitoring_event_repository import MonitoringEventRepository
 
 @pytest.fixture
 def repos():
@@ -15,7 +16,8 @@ def repos():
         "candidate": ProductCandidateRepository(),
         "evidence": CandidateEvidenceRepository(),
         "job": JobRunRepository(),
-        "listing": EbayListingRepository()
+        "listing": EbayListingRepository(),
+        "event": MonitoringEventRepository()
     }
 
 @pytest.fixture
@@ -24,7 +26,8 @@ def pipeline(repos):
         candidate_repo=repos["candidate"],
         evidence_repo=repos["evidence"],
         job_repo=repos["job"],
-        listing_repo=repos["listing"]
+        listing_repo=repos["listing"],
+        event_repo=repos["event"]
     )
 
 def _create_listed_candidate(cid, sku="SKU-MON"):
@@ -59,7 +62,8 @@ def test_monitor_not_listed(pipeline, repos):
     
     res = pipeline.monitor_and_revise_listing(MonitoringReviseRequest(candidate_id="CAND-M01"))
     assert res.monitoring_status == "skipped"
-    assert "Not listed" in res.error_summary
+    assert "Target selector excluded" in res.error_summary
+    assert "not_listed" in res.monitoring_reason_codes
 
 # 2. source 在庫切れで set_quantity_zero が選ばれる
 def test_source_out_of_stock(pipeline, repos):

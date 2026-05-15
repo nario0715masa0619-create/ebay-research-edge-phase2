@@ -5,6 +5,7 @@ from src.ebay.models import ProductCandidate, EbayListing, CandidateEvidence, Mo
 from src.ebay.api_client import EbayInventoryApiClient
 from .models import MonitoringReviseRequest, MonitoringReviseResult, MonitoringReviseBatchResult
 from .source_refresher import SourceStateRefresher
+from .target_selector import MonitoringTargetSelector
 from .marketplace_sync import MarketplaceStateSync
 from .profit_recalculator import ProfitRecalculator
 from .revise_decision_engine import ReviseDecisionEngine
@@ -14,13 +15,15 @@ from .result_mapper import MonitoringResultMapper
 from .retry_classifier import ReviseRetryClassifier
 
 class MonitoringRevisePipeline:
-    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo):
+    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo, event_repo=None):
         self.candidate_repo = candidate_repo
         self.evidence_repo = evidence_repo
         self.job_repo = job_repo
         self.listing_repo = listing_repo
+        self.event_repo = event_repo
         
         self.api_client = EbayInventoryApiClient()
+        self.target_selector = MonitoringTargetSelector()
         self.source_refresher = SourceStateRefresher()
         self.marketplace_sync = MarketplaceStateSync(self.api_client)
         self.profit_recalculator = ProfitRecalculator()
@@ -37,8 +40,16 @@ class MonitoringRevisePipeline:
         if not candidate or not listing:
             return MonitoringReviseResult(candidate_id=request.candidate_id, sku="unknown", monitoring_status="failed", error_summary="Candidate or Listing not found")
 
-        if candidate.status != "listed":
-            return MonitoringReviseResult(candidate_id=candidate.candidate_id, sku=candidate.sku, monitoring_status="skipped", error_summary="Not listed")
+        # 2. Target Selector / Guard
+        sel_res = self.target_selector.evaluate(candidate)
+        if not sel_res.eligible_flag:
+            return MonitoringReviseResult(
+                candidate_id=candidate.candidate_id, 
+                sku=candidate.sku, 
+                monitoring_status="skipped", 
+                monitoring_reason_codes=sel_res.selector_reason_codes,
+                error_summary="Target selector excluded"
+            )
 
         res = MonitoringReviseResult(candidate_id=candidate.candidate_id, sku=candidate.sku, monitoring_status="running")
         
@@ -97,7 +108,9 @@ class MonitoringRevisePipeline:
         # Persist
         self.candidate_repo.upsert(candidate)
         self.listing_repo.upsert(listing)
-        # for e in events: self.event_repo.save(e) # Assume candidate_repo or similar handles events for now
+        if self.event_repo:
+            for e in events:
+                self.event_repo.save(e)
         
         return res
 

@@ -186,6 +186,7 @@ class EbayListing:
     
     last_publish_attempt_at: Optional[datetime] = None
     last_publish_error: Optional[str] = None
+    last_revise_error: Optional[str] = None
     
     listed_at: Optional[datetime] = None
     updated_at: datetime = field(default_factory=datetime.now)

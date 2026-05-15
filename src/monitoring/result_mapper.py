@@ -24,7 +24,7 @@ class MonitoringResultMapper:
         
         listing.updated_at = datetime.now()
         if res.error_summary:
-            listing.last_publish_error = res.error_summary
+            listing.last_revise_error = res.error_summary
 
     def create_events(self, candidate_id: str, sku: str, 
                       source_state: Dict[str, Any], 
