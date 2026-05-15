@@ -108,21 +108,34 @@ def resolve_shipping_cost(
             result.import_charges_estimated_total = float(import_charges.get("amount", {}).get("value", 0))
             result.add_note(f"Import charges found: {result.import_charges_estimated_total}")
 
-        # Taxes
+        # Taxes / VAT context
         taxes = target_snapshot.get("taxes", [])
         if taxes:
             result.taxes_included_flag = True
-            result.add_note("Taxes might be included (Tax info present).")
+            result.vat_included_flag = True # eBay taxes field often implies VAT/SalesTax
+            result.add_note("Taxes/VAT info present.")
+        else:
+            result.vat_included_flag = None # Unknown
+            result.taxes_included_flag = None # Unknown
+            result.add_note("VAT/Tax context is missing (Unknown).")
+            # Confidence drop if context is missing
+            if result.shipping_confidence == ShippingConfidence.HIGH:
+                result.shipping_confidence = ShippingConfidence.MEDIUM
+            elif result.shipping_confidence == ShippingConfidence.MEDIUM:
+                result.shipping_confidence = ShippingConfidence.LOW
 
         # Return Risk
         return_terms = target_snapshot.get("returnTerms", {})
         payer = return_terms.get("returnShippingCostPayer", "")
-        if payer == "BUYER":
+        if payer == "SELLER":
             result.return_shipping_risk_flag = True
-            result.add_note("Buyer pays for return shipping (Risk flag set).")
-        elif payer == "SELLER":
+            result.add_note("Seller pays for return shipping (Risk flag set per spec).")
+        elif payer == "BUYER":
             result.return_shipping_risk_flag = False
-            result.add_note("Seller pays for return shipping.")
+            result.add_note("Buyer pays for return shipping.")
+        else:
+            result.return_shipping_risk_flag = False
+            result.add_note("Return shipping payer unknown.")
 
     # 6. Adjust Confidence if Search Snapshot used
     if source_level == ShippingSourceLevel.SEARCH:

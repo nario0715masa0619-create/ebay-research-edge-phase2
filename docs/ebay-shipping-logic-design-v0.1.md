@@ -36,7 +36,7 @@
 - taxes_included_flag
 - import_charges_included_flag
 - import_charges_estimated_total
-- return_shipping_risk_flag
+- return_shipping_risk_flag: 返品送料リスク有無（Seller負担時にTrue）
 - quantity_basis
 - delivery_context_used
 - selected_option_summary
@@ -46,19 +46,20 @@
 ## 6. 優先順位
 1. detail snapshot の配送可能な FIXED 明示送料
 2. detail snapshot の配送可能な CALCULATED 送料
-3. search snapshot の配送可能な FIXED 明示送料
-4. search snapshot の配送可能な CALCULATED 送料
+3. search snapshot の配送可能な FIXED 明示送料（resolved_exact, medium confidence）
+4. search snapshot の配送可能な CALCULATED 送料（resolved_estimated, medium confidence）
 5. fallback shipping
 6. unresolved
 
 ## 7. 選定ルール
 - detail を search より優先
 - FIXED を CALCULATED より優先
+- search 由来の有効送料は fallback 扱いしない
 - 配送可能な option のみ対象
 - local pickup only は除外
 - 同条件なら最安送料を採用
 - shipping と import charges は分離
-- 通貨は保持し、自動換算しない
+- 通計は保持し、自動換算しない
 
 ## 8. 状態定義
 - resolved_exact
@@ -79,7 +80,7 @@
 - CALCULATED のみ
 - 税込みか不明
 - import charges 別建て
-- 返品送料 seller 負担
+- 返品送料 seller 負担 (risk=true)
 - fallback 使用
 - unresolved
 

@@ -29,13 +29,11 @@ class ShippingResult:
     shipping_cost_type: str = ""  # e.g., FIXED, CALCULATED
     shipping_resolution_status: ShippingResolutionStatus = ShippingResolutionStatus.UNRESOLVED
     shipping_confidence: ShippingConfidence = ShippingConfidence.NONE
-    vat_included_flag: bool = False
-    taxes_included_flag: bool = False
+    vat_included_flag: Optional[bool] = None
+    taxes_included_flag: Optional[bool] = None
     import_charges_included_flag: bool = False
     import_charges_estimated_total: float = 0.0
-    return_shipping_risk_flag: bool = False  # True if seller pays for return shipping (risk for seller, but here maybe it means risk for buyer if not covered?)
-    # Re-reading prompt: "return_shipping_risk_flag: 返品送料リスク有無" 
-    # Usually risk exists if buyer pays. Let's clarify in implementation.
+    return_shipping_risk_flag: bool = False  # True if seller pays for return shipping
     quantity_basis: int = 1
     delivery_context_used: Dict[str, Any] = field(default_factory=dict)
     selected_option_summary: str = ""
