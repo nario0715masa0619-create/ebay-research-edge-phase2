@@ -110,17 +110,17 @@ def resolve_payout_fee(
             result.payout_source_level = PayoutSourceLevel.ACCOUNT_SPECIFIC_RULE
             result.payout_resolution_status = PayoutResolutionStatus.RESOLVED_EXACT
             result.payout_confidence = PayoutConfidence.HIGH
-            result.add_note("account specific payout rule(s) applied")
+            result.add_note("account specific payout rule applied")
         elif PayoutSourceLevel.STANDARD_PRICING_MASTER in sources:
             result.payout_source_level = PayoutSourceLevel.STANDARD_PRICING_MASTER
             result.payout_resolution_status = PayoutResolutionStatus.RESOLVED_ESTIMATED
             result.payout_confidence = PayoutConfidence.MEDIUM
-            result.add_note("standard pricing master rule(s) applied")
+            result.add_note("standard pricing master applied")
         else:
             result.payout_source_level = PayoutSourceLevel.FALLBACK_MASTER
             result.payout_resolution_status = PayoutResolutionStatus.FALLBACK_DEFAULT
             result.payout_confidence = PayoutConfidence.LOW
-            result.add_note("external fallback rule(s) applied")
+            result.add_note("fallback payout rule applied")
 
         if len(selected_rules_by_category) > 1:
             result.add_note("multiple payout fee rules applied")
@@ -146,11 +146,11 @@ def resolve_payout_fee(
     if result.payout_resolution_status in [PayoutResolutionStatus.RESOLVED_ESTIMATED, PayoutResolutionStatus.RESOLVED_EXACT]:
         if has_master_unresolved_components and strictness == "balanced":
              result.payout_resolution_status = PayoutResolutionStatus.RESOLVED_PARTIAL
-             result.add_note("payout fee partially resolved via master, missing components filled by internal fallback")
+             result.add_note("payout fee partially resolved")
 
     if result.payout_resolution_status == PayoutResolutionStatus.UNRESOLVED and not result.unresolved_reason:
         result.unresolved_reason = "no_matching_rules"
-        result.add_note("payout fee unresolved: no matching rules found")
+        result.add_note("payout fee unresolved")
 
     return result
 
@@ -215,11 +215,19 @@ def _apply_rule(result: PayoutFeeResult, rule: Dict[str, Any], gross: float):
     if "max_fee" in rule: fee_val = min(fee_val, rule["max_fee"])
 
     cat = rule.get("category", "other")
-    if cat == "receiving": result.receiving_fee_estimated_total = fee_val
-    elif cat == "withdrawal": result.withdrawal_fee_estimated_total = fee_val
-    elif cat == "conversion": result.conversion_fee_estimated_total = fee_val
-    elif cat == "cross_border": result.cross_border_fee_estimated_total = fee_val
-    else: result.other_payout_fee_estimated_total = fee_val
+    if cat == "receiving": 
+        result.receiving_fee_estimated_total = fee_val
+    elif cat == "withdrawal": 
+        result.withdrawal_fee_estimated_total = fee_val
+        result.add_note("withdrawal rule applied")
+    elif cat == "conversion": 
+        result.conversion_fee_estimated_total = fee_val
+        result.add_note("conversion rule applied")
+    elif cat == "cross_border": 
+        result.cross_border_fee_estimated_total = fee_val
+        result.add_note("cross-border rule applied")
+    else: 
+        result.other_payout_fee_estimated_total = fee_val
 
     if rule.get("rule_id"):
         result.applied_rule_ids.append(rule["rule_id"])
