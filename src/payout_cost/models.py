@@ -59,6 +59,13 @@ class PayoutFeeResult:
     net_payout_currency: str = ""
 
     # Context & Metadata
+    applied_rule_ids: List[str] = field(default_factory=list)
+    applied_rule_count: int = 0
+    partial_fee_components: List[str] = field(default_factory=list)
+    unresolved_reason: Optional[str] = None
+    payout_reason_codes: List[str] = field(default_factory=list)
+    strictness: str = "balanced"
+
     payout_notes: List[str] = field(default_factory=list)
     payout_context_used: Dict[str, Any] = field(default_factory=dict)
 

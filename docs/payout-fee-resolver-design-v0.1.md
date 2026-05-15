@@ -13,12 +13,28 @@ PayoutFeeResolver は、利用可能なルールと口座条件に基づいて p
 優先順位:
 1. `payout_rule_override`: 個別アカウント向けの特例ルール
 2. `payout_rule_master`: 公式 pricing ベースの標準ルールマスタ
-3. `fallback_master`: 最低限のデフォルトルール
-4. `unresolved`: 判定不能
+3. `fallback_rule`: 外部から注入される暫定ルール
+4. 内部最小 fallback: システム定義の最終救済ルール
+5. `unresolved`: 判定不能
 
-## 4. 判定ステータスと信頼度
+## 4. ルール適用方式 (Multi-component Application)
+単一のルールで終了するのではなく、以下のカテゴリごとに最適なルールを収集して加算する方式をとる。
+- `receiving` (受取)
+- `withdrawal` (出金)
+- `conversion` (通貨変換)
+- `cross_border` (クロスボーダー)
+- `other` (その他)
+
+同一カテゴリ内で複数のルールが合致した場合は、より具体度（Specificity）の高いルール（条件指定が多いもの）を優先採用する。
+
+## 5. 厳格度モード (Strictness)
+- **`permissive`**: 積極的に内部 fallback を利用し、何かしらの値を返す。
+- **`balanced` (デフォルト)**: 部分的な解決（Partial）を許容し、不足分を fallback で補う。
+- **`strict`**: 確実なルールがない場合は `UNRESOLVED` を返し、推測を排除する。
+
+## 6. 判定ステータスと信頼度
 - **Source Level**: `ACCOUNT_SPECIFIC_RULE`, `STANDARD_PRICING_MASTER`, `FALLBACK_MASTER`, `UNRESOLVED`
-- **Resolution Status**: `RESOLVED_EXACT`, `RESOLVED_ESTIMATED`, `RESOLVED_PARTIAL`, `FALLBACK_DEFAULT`, `UNRESOLVED`
+- **Resolution Status**: `RESOLVED_EXACT`, `RESOLVED_ESTIMATED`, `RESOLVED_PARTIAL` (一部解決), `FALLBACK_DEFAULT`, `UNRESOLVED`
 - **Confidence**: `HIGH` (個別ルール適用), `MEDIUM` (マスタ合致), `LOW` (fallback), `NONE`
 
 ## 5. 手数料コンポーネント
