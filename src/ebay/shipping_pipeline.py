@@ -11,20 +11,42 @@ class ShippingPipeline:
 
     def should_fetch_detail(self, search_snapshot: Dict[str, Any]) -> bool:
         """
-        Determine if we need more info from getItem.
-        Example: search shows CALCULATED or missing options.
-        For best accuracy, we usually always fetch detail if possible.
+        Determine if we need more info from getItem based on carrier constraints and accuracy.
         """
         options = search_snapshot.get("shippingOptions", [])
         if not options:
             return True
         
-        # If any option is CALCULATED, detail might provide more accurate info
-        for opt in options:
-            if opt.get("shippingCostType") == "CALCULATED":
-                return True
+        # Check carrier normalization for options in search
+        from src.shipping.resolver import normalize_carrier, ALLOWED_CARRIERS, CarrierNormalized
         
-        return False
+        allowed_count = 0
+        has_unknown = False
+        has_calculated = False
+        has_missing_service_name = False
+
+        for opt in options:
+            service_name = opt.get("shippingServiceCode", "")
+            if not service_name:
+                has_missing_service_name = True
+            
+            carrier = normalize_carrier(service_name)
+            if carrier.value in ALLOWED_CARRIERS:
+                allowed_count += 1
+            if carrier == CarrierNormalized.UNKNOWN:
+                has_unknown = True
+            
+            if opt.get("shippingCostType") == "CALCULATED":
+                has_calculated = True
+
+        # Trigger detail fetch if:
+        if allowed_count == 0: return True # No allowed carrier in search
+        if has_unknown: return True       # Some options are unknown carrier
+        if has_calculated: return True    # Some options are calculated
+        if has_missing_service_name: return True # Missing service name info
+        
+        # Also check for Tax/VAT context (usually missing in search)
+        return True # Default to True for best accuracy per spec
 
     def resolve_item_shipping_via_api(
         self, 

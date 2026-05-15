@@ -21,6 +21,22 @@ class ShippingSourceLevel(Enum):
     FALLBACK = "fallback"
     NONE = "none"
 
+class CarrierNormalized(Enum):
+    FEDEX = "FEDEX"
+    POSTAL = "POSTAL"
+    OTHER = "OTHER"
+    UNKNOWN = "UNKNOWN"
+
+class CarrierFilterStatus(Enum):
+    ALLOWED_CARRIER_SELECTED = "allowed_carrier_selected"
+    NO_ALLOWED_CARRIER_FOUND = "no_allowed_carrier_found"
+    ONLY_DISALLOWED_CARRIERS_FOUND = "only_disallowed_carriers_found"
+    CARRIER_UNKNOWN_NEEDS_DETAIL = "carrier_unknown_needs_detail"
+    CARRIER_UNKNOWN_AFTER_DETAIL = "carrier_unknown_after_detail"
+    FALLBACK_USED_DUE_TO_NO_ALLOWED_CARRIER = "fallback_used_due_to_no_allowed_carrier"
+    UNRESOLVED_NO_ALLOWED_CARRIER = "unresolved_no_allowed_carrier"
+    NONE = "none"
+
 @dataclass
 class ShippingResult:
     shipping_estimated_total: float = 0.0
@@ -29,6 +45,13 @@ class ShippingResult:
     shipping_cost_type: str = ""  # e.g., FIXED, CALCULATED
     shipping_resolution_status: ShippingResolutionStatus = ShippingResolutionStatus.UNRESOLVED
     shipping_confidence: ShippingConfidence = ShippingConfidence.NONE
+    
+    # Carrier specific fields
+    service_name_raw: str = ""
+    carrier_normalized: CarrierNormalized = CarrierNormalized.UNKNOWN
+    carrier_allowed_flag: bool = False
+    carrier_filter_status: CarrierFilterStatus = CarrierFilterStatus.NONE
+    
     vat_included_flag: Optional[bool] = None
     taxes_included_flag: Optional[bool] = None
     import_charges_included_flag: bool = False

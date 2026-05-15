@@ -31,7 +31,14 @@
 - **疎結合**: Resolver は API Client を知らず、Snapshot のみを受け取る。
 - **耐障害性**: `getItem` (Detail) の取得に失敗した場合でも、`search` の情報を活用して処理を継続する。
 - **説明可能性**: Snapshot を経由することで、どのデータに基づき送料が算出されたかのトレースを可能にする。
+- **キャリア制約**: 配送キャリアを「FedEx」または「郵便系(Postal)」に限定する。これ以外のキャリア（DHL, UPS等）は原則として除外し、許可キャリアの中から最適なものを選択する。
 
-## 5. テスト方針
+## 5. キャリア判定と選定ロジック
+- **正規化**: 配送サービス名から `FEDEX`, `POSTAL`, `OTHER`, `UNKNOWN` に分類。
+- **フィルタリング**: `ALLOWED_CARRIERS = {"FEDEX", "POSTAL"}` に合致するオプションのみを選定対象とする。
+- **優先順位**: 許可キャリア内において、`Detail > Search`、`FIXED > CALCULATED`、`最安値` の順で優先。
+- **UNKNOWNの扱い**: キャリアが不明な場合は `Detail` 取得を試み、最終的に不明な場合は `unresolved` または `fallback` とする。
+
+## 6. テスト方針
 - Mock Client を使用して、API通信を伴わない Pipeline の結合テストを実施する。
 - 各 Adapter の変換ロジックの単体テストを実施する。

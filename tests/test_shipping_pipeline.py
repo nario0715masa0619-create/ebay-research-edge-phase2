@@ -14,7 +14,7 @@ def test_pipeline_flow_with_detail():
         item_id="item123",
         title="Search Title",
         price={"value": "100.00", "currency": "USD"},
-        shipping_options=[{"shippingCost": {"value": "20.00", "currency": "USD"}, "shippingCostType": "CALCULATED"}]
+        shipping_options=[{"shippingCost": {"value": "20.00", "currency": "USD"}, "shippingCostType": "CALCULATED", "shippingServiceCode": "USPS"}]
     )
     
     # Mock Detail Data
@@ -22,7 +22,7 @@ def test_pipeline_flow_with_detail():
         item_id="item123",
         title="Detail Title",
         price={"value": "100.00", "currency": "USD"},
-        shipping_options=[{"shippingCost": {"value": "15.00", "currency": "USD"}, "type": "FIXED"}],
+        shipping_options=[{"shippingCost": {"value": "15.00", "currency": "USD"}, "type": "FIXED", "shippingServiceCode": "FedEx"}],
         taxes=[{"taxType": "VAT"}]
     )
     mock_client.get_item_with_context.return_value = detail
@@ -50,7 +50,7 @@ def test_pipeline_flow_search_only_on_detail_fail():
         item_id="item123",
         title="Search Title",
         price={"value": "100.00", "currency": "USD"},
-        shipping_options=[{"shippingCost": {"value": "20.00", "currency": "USD"}, "shippingCostType": "FIXED"}]
+        shipping_options=[{"shippingCost": {"value": "20.00", "currency": "USD"}, "shippingCostType": "FIXED", "shippingServiceCode": "FedEx"}]
     )
     
     pipeline = ShippingPipeline(mock_client)
@@ -74,6 +74,6 @@ def test_should_fetch_detail():
     snap_calc = {"shippingOptions": [{"shippingCostType": "CALCULATED"}]}
     assert pipeline.should_fetch_detail(snap_calc) is True
     
-    # Case 2: Search has FIXED -> No mandatory fetch (in this logic)
-    snap_fixed = {"shippingOptions": [{"shippingCostType": "FIXED"}]}
-    assert pipeline.should_fetch_detail(snap_fixed) is False
+    # Case 2: Search has FIXED -> Still returns True for accuracy/VAT context per current spec
+    snap_fixed = {"shippingOptions": [{"shippingCostType": "FIXED", "shippingServiceCode": "FedEx"}]}
+    assert pipeline.should_fetch_detail(snap_fixed) is True
