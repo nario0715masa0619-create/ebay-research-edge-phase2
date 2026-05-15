@@ -3,6 +3,8 @@ from .browse_client import EbayBrowseClient
 from .snapshot_adapters import SnapshotAdapter
 from src.shipping.resolver import resolve_shipping_cost, normalize_carrier, ALLOWED_CARRIERS, CarrierNormalized
 from src.shipping.models import ShippingResult, ShippingResolutionStatus
+from src.import_cost.resolver import resolve_import_charges
+from src.import_cost.models import ImportChargeResult
 
 class ShippingPipeline:
     def __init__(self, client: EbayBrowseClient):
@@ -109,14 +111,15 @@ class ShippingPipeline:
         quantity: int = 1,
         search_item_summary: Optional[Any] = None,
         fallback_value: Optional[float] = None,
+        fallback_import_rule: Optional[Dict[str, Any]] = None,
         mode: str = "balanced"
-    ) -> ShippingResult:
+    ) -> Tuple[ShippingResult, ImportChargeResult]:
         """
         Optimized flow:
         1. Adapt search
         2. Check should_fetch_detail
         3. Fetch detail only if needed
-        4. Resolve
+        4. Resolve Shipping AND Import Charges
         """
         detail_fetch_attempted = False
         detail_fetch_succeeded = False
@@ -140,7 +143,8 @@ class ShippingPipeline:
             except Exception:
                 pass
 
-        result = resolve_shipping_cost(
+        # Resolve Shipping
+        shipping_result = resolve_shipping_cost(
             item_id=item_id,
             marketplace_id=marketplace_id,
             delivery_country=country,
@@ -151,17 +155,36 @@ class ShippingPipeline:
             fallback_shipping_value=fallback_value
         )
         
-        # Add metadata
-        result.detail_fetch_attempted = detail_fetch_attempted
-        result.detail_fetch_succeeded = detail_fetch_succeeded
-        result.detail_fetch_reason = detail_fetch_reason
-        result.pipeline_mode = mode
+        # Add metadata to shipping_result
+        shipping_result.detail_fetch_attempted = detail_fetch_attempted
+        shipping_result.detail_fetch_succeeded = detail_fetch_succeeded
+        shipping_result.detail_fetch_reason = detail_fetch_reason
+        shipping_result.pipeline_mode = mode
+
+        # Resolve Import Charges
+        item_price = 0.0
+        if search_item_summary and hasattr(search_item_summary, 'price'):
+            item_price = float(search_item_summary.price.get("value", 0))
+        elif detail_snapshot:
+            item_price = float(detail_snapshot.get("price", {}).get("value", 0))
+
+        import_result = resolve_import_charges(
+            item_id=item_id,
+            marketplace_id=marketplace_id,
+            delivery_country=country,
+            quantity=quantity,
+            item_price=item_price,
+            shipping_estimate=shipping_result.shipping_estimated_total,
+            search_snapshot=search_snapshot,
+            detail_snapshot=detail_snapshot,
+            fallback_import_rule=fallback_import_rule
+        )
         
-        return result
+        return shipping_result, import_result
 
     def enrich_item_with_shipping(self, item_summary: Any, country: str, marketplace_id: str, mode: str = "balanced") -> Dict[str, Any]:
-        """Convenience method to add shipping info and metadata to a search item result"""
-        result = self.resolve_item_shipping_via_api(
+        """Convenience method to add shipping info, import info and metadata to a search item result"""
+        shipping_result, import_result = self.resolve_item_shipping_via_api(
             item_id=item_summary.item_id,
             marketplace_id=marketplace_id,
             country=country,
@@ -171,11 +194,12 @@ class ShippingPipeline:
         
         return {
             "item_id": item_summary.item_id,
-            "shipping_info": result,
+            "shipping_info": shipping_result,
+            "import_info": import_result,
             "pipeline_meta": {
-                "detail_fetch_attempted": result.detail_fetch_attempted,
-                "detail_fetch_succeeded": result.detail_fetch_succeeded,
-                "detail_fetch_reason": result.detail_fetch_reason,
-                "mode": result.pipeline_mode
+                "detail_fetch_attempted": shipping_result.detail_fetch_attempted,
+                "detail_fetch_succeeded": shipping_result.detail_fetch_succeeded,
+                "detail_fetch_reason": shipping_result.detail_fetch_reason,
+                "mode": shipping_result.pipeline_mode
             }
         }
