@@ -33,9 +33,10 @@ class ShippingPipeline:
         has_unknown = False
         has_calculated = False
         has_missing_service_name = False
-        has_local_pickup = False
+        has_local_pickup_only = True # Assume true until we find a non-local-pickup option
         allowed_fixed_count = 0
         cheapest_is_disallowed = False
+        has_free_shipping_unknown = False
 
         processed_options = []
         for opt in options:
@@ -48,8 +49,8 @@ class ShippingPipeline:
             cost_value = float(opt.get("shippingCost", {}).get("value", 0))
             
             is_local_pickup = "LOCALPICKUP" in service_name.upper() or "LOCAL PICKUP" in service_name.upper()
-            if is_local_pickup:
-                has_local_pickup = True
+            if not is_local_pickup:
+                has_local_pickup_only = False
             
             is_allowed = carrier.value in ALLOWED_CARRIERS
             if is_allowed and not is_local_pickup:
@@ -59,6 +60,8 @@ class ShippingPipeline:
             
             if carrier == CarrierNormalized.UNKNOWN:
                 has_unknown = True
+                if cost_value == 0:
+                    has_free_shipping_unknown = True
             
             if cost_type == "CALCULATED":
                 has_calculated = True
@@ -77,26 +80,22 @@ class ShippingPipeline:
                 cheapest = min(available, key=lambda x: x["cost_value"])
                 if not cheapest["is_allowed"]:
                     cheapest_is_disallowed = True
+            else:
+                has_local_pickup_only = True
 
         # Evaluation
         if allowed_count == 0: reasons.append("no_allowed_carrier")
         if has_unknown: reasons.append("unknown_carrier")
         if has_missing_service_name: reasons.append("missing_service_name")
         if allowed_count > 0 and allowed_fixed_count == 0: reasons.append("calculated_shipping_only")
-        if len(options) > 0 and allowed_count == 0 and has_local_pickup: reasons.append("local_pickup_only")
-        if cheapest_is_disallowed: reasons.append("disallowed_cheapest_needs_verification")
+        if has_local_pickup_only: reasons.append("local_pickup_only")
+        if has_free_shipping_unknown: reasons.append("free_shipping_unknown_carrier")
         
         # Mode specific extra checks
         if mode == "aggressive_accuracy":
-            if allowed_count > 0:
-                reasons.append("aggressive_accuracy_mode_check")
-        
-        # Tax / VAT / Import charges checks (usually search lacks these)
-        # In balanced mode, we might still want detail if we need high accuracy for taxes
-        # But per spec, we only take it if one of the above reasons matched.
-        # Actually, let's add one more check for tax if we are in aggressive mode.
-        if mode == "aggressive_accuracy" and "tax_context_missing" not in reasons:
-             reasons.append("tax_context_missing")
+            reasons.append("aggressive_accuracy_mode_check")
+            reasons.append("tax_context_missing")
+            reasons.append("import_charges_check_needed")
 
         should_fetch = len(reasons) > 0
         return should_fetch, reasons
@@ -121,14 +120,14 @@ class ShippingPipeline:
         """
         detail_fetch_attempted = False
         detail_fetch_succeeded = False
-        detail_fetch_reasons = []
+        detail_fetch_reason = []
         
         search_snapshot = None
         if search_item_summary:
             search_snapshot = self.adapter.adapt_search_item_summary_to_snapshot(search_item_summary)
 
         should_fetch, reasons = self.should_fetch_detail(search_snapshot, mode)
-        detail_fetch_reasons = reasons
+        detail_fetch_reason = reasons
 
         detail_snapshot = None
         if should_fetch:
@@ -155,7 +154,7 @@ class ShippingPipeline:
         # Add metadata
         result.detail_fetch_attempted = detail_fetch_attempted
         result.detail_fetch_succeeded = detail_fetch_succeeded
-        result.detail_fetch_reasons = detail_fetch_reasons
+        result.detail_fetch_reason = detail_fetch_reason
         result.pipeline_mode = mode
         
         return result
@@ -176,7 +175,7 @@ class ShippingPipeline:
             "pipeline_meta": {
                 "detail_fetch_attempted": result.detail_fetch_attempted,
                 "detail_fetch_succeeded": result.detail_fetch_succeeded,
-                "detail_fetch_reasons": result.detail_fetch_reasons,
+                "detail_fetch_reason": result.detail_fetch_reason,
                 "mode": result.pipeline_mode
             }
         }

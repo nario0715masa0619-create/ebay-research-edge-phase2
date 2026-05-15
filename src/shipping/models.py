@@ -66,7 +66,7 @@ class ShippingResult:
     # Pipeline metadata
     detail_fetch_attempted: bool = False
     detail_fetch_succeeded: bool = False
-    detail_fetch_reasons: List[str] = field(default_factory=list)
+    detail_fetch_reason: List[str] = field(default_factory=list)
     pipeline_mode: str = "balanced"
 
     def add_note(self, note: str):

@@ -22,6 +22,7 @@ def test_balanced_no_detail_fetch_fedex_fixed():
     assert result.detail_fetch_attempted is False
     assert result.shipping_source_level == ShippingSourceLevel.SEARCH
     assert mock_client.get_item_with_context.called is False
+    assert result.detail_fetch_reason == []
 
 def test_balanced_no_detail_fetch_usps_fixed():
     # Case 2: balanced mode, USPS FIXED in search -> Should NOT fetch detail
@@ -42,8 +43,8 @@ def test_fetch_detail_if_no_allowed_carrier():
         item_id="item1", title="T1", price={"value":"10","currency":"USD"},
         shipping_options=[{"shippingCost":{"value":"5","currency":"USD"}, "shippingCostType":"FIXED", "shippingServiceCode":"DHL"}]
     )
-    pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
-    assert "no_allowed_carrier" in pipeline.should_fetch_detail(pipeline.adapter.adapt_search_item_summary_to_snapshot(summary))[1]
+    result = pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
+    assert "no_allowed_carrier" in result.detail_fetch_reason
     assert mock_client.get_item_with_context.called is True
 
 def test_fetch_detail_if_unknown_carrier():
@@ -53,7 +54,8 @@ def test_fetch_detail_if_unknown_carrier():
         item_id="item1", title="T1", price={"value":"10","currency":"USD"},
         shipping_options=[{"shippingCost":{"value":"5","currency":"USD"}, "shippingCostType":"FIXED", "shippingServiceCode": ""}]
     )
-    pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
+    result = pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
+    assert "unknown_carrier" in result.detail_fetch_reason
     assert mock_client.get_item_with_context.called is True
 
 def test_fetch_detail_if_calculated_only():
@@ -63,7 +65,8 @@ def test_fetch_detail_if_calculated_only():
         item_id="item1", title="T1", price={"value":"10","currency":"USD"},
         shipping_options=[{"shippingCost":{"value":"5","currency":"USD"}, "shippingCostType":"CALCULATED", "shippingServiceCode": "FedEx"}]
     )
-    pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
+    result = pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
+    assert "calculated_shipping_only" in result.detail_fetch_reason
     assert mock_client.get_item_with_context.called is True
 
 def test_continue_with_search_on_detail_fail():
@@ -97,8 +100,9 @@ def test_always_detail_mode():
         item_id="item1", title="T1", price={"value":"10","currency":"USD"},
         shipping_options=[{"shippingCost":{"value":"5","currency":"USD"}, "shippingCostType":"FIXED", "shippingServiceCode": "FedEx"}]
     )
-    pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="always_detail")
+    result = pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="always_detail")
     assert mock_client.get_item_with_context.called is True
+    assert "always_detail_mode" in result.detail_fetch_reason
 
 def test_fetch_detail_on_local_pickup_only():
     # Case 9: Local Pickup only -> Should fetch detail
@@ -107,8 +111,9 @@ def test_fetch_detail_on_local_pickup_only():
         item_id="item1", title="T1", price={"value":"10","currency":"USD"},
         shipping_options=[{"shippingCost":{"value":"0","currency":"USD"}, "shippingCostType":"FIXED", "shippingServiceCode": "Local Pickup"}]
     )
-    pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
+    result = pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
     assert mock_client.get_item_with_context.called is True
+    assert "local_pickup_only" in result.detail_fetch_reason
 
 def test_fetch_detail_on_free_shipping_unknown_carrier():
     # Case 10: free shipping + UNKNOWN carrier -> Should fetch detail
@@ -117,8 +122,9 @@ def test_fetch_detail_on_free_shipping_unknown_carrier():
         item_id="item1", title="T1", price={"value":"10","currency":"USD"},
         shipping_options=[{"shippingCost":{"value":"0","currency":"USD"}, "shippingCostType":"FIXED", "shippingServiceCode": ""}]
     )
-    pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
+    result = pipeline.resolve_item_shipping_via_api("item1", "EBAY_US", "JP", search_item_summary=summary, mode="balanced")
     assert mock_client.get_item_with_context.called is True
+    assert "free_shipping_unknown_carrier" in result.detail_fetch_reason
 
 def test_detail_not_called_on_optimized_case():
     # Case 11: detail not called on optimized case
