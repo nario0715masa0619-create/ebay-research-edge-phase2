@@ -79,23 +79,37 @@ class EbayBaseApiClient:
                 )
                 
                 if response.is_success:
-                    return response.json() if response.content else {"status_code": response.status_code}
+                    result = response.json() if response.content else {"status_code": response.status_code}
+                    # Add audit metadata (Section 5.11)
+                    result["_audit"] = {
+                        "operation_key": operation_key,
+                        "token_kind": token_info.token_type,
+                        "auth_path": token_info.source_type,
+                        "retry_count": attempt,
+                        "environment": self.config.ebay_environment
+                    }
+                    return result
 
                 # 6. Error Handling
                 error_body = response.json() if response.content else {}
-                classification = self.error_classifier.classify(response.status_code, error_body)
+                failure = self.error_classifier.classify(response.status_code, error_body)
                 
-                if not classification.should_retry or attempt >= self.config.auth_default_max_retry:
-                    logger.error(f"Fatal API error: {classification.message}")
-                    return {"error": classification.error_code, "status_code": response.status_code, "message": classification.message}
+                if not failure.retryable_flag or attempt >= self.config.auth_default_max_retry:
+                    logger.error(f"Fatal API error: {failure.message}")
+                    return {
+                        "error": failure.error_code, 
+                        "status_code": response.status_code, 
+                        "message": failure.message,
+                        "review_required": failure.review_required_flag
+                    }
 
                 # 7. Retry Preparation
-                if classification.invalidate_token:
+                if failure.error_code == "token_expired":
                     scope_str = " ".join(sorted(required_scopes))
                     self.auth_service.cache.invalidate(token_info.token_type, scope_str, seller_id)
 
                 # Wait before retry
-                backoff = classification.backoff_seconds
+                backoff = None
                 if response.status_code == 429 and "Retry-After" in response.headers:
                     try:
                         backoff = float(response.headers["Retry-After"])

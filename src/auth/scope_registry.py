@@ -24,6 +24,8 @@ class OAuthScopeRegistry:
         }
 
     def get_required_scopes(self, operation_key: str) -> List[str]:
+        if operation_key not in self._registry:
+            raise ValueError(f"Operation key '{operation_key}' is not registered in OAuthScopeRegistry")
         return self._registry.get(operation_key, [])
 
     def register(self, operation_key: str, scopes: List[str]):

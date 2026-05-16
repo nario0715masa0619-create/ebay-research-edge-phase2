@@ -19,7 +19,9 @@ def bootstrap_auth_layer(config: Optional[AuthConfig] = None):
     retry_policy = RetryBackoffPolicy(cfg)
     error_classifier = AuthErrorClassifier()
     
-    return {
+    from src.ebay.api_client import EbayInventoryApiClient
+    
+    auth_components = {
         "config": cfg,
         "token_service": token_service,
         "scope_registry": scope_registry,
@@ -28,3 +30,8 @@ def bootstrap_auth_layer(config: Optional[AuthConfig] = None):
         "error_classifier": error_classifier,
         "cache": token_cache
     }
+    
+    api_client = EbayInventoryApiClient(auth_components)
+    auth_components["api_client"] = api_client
+    
+    return auth_components

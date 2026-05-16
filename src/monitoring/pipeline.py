@@ -15,14 +15,14 @@ from .result_mapper import MonitoringResultMapper
 from .retry_classifier import ReviseRetryClassifier
 
 class MonitoringRevisePipeline:
-    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo, event_repo=None):
+    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo, event_repo=None, api_client=None):
         self.candidate_repo = candidate_repo
         self.evidence_repo = evidence_repo
         self.job_repo = job_repo
         self.listing_repo = listing_repo
         self.event_repo = event_repo
         
-        self.api_client = EbayInventoryApiClient()
+        self.api_client = api_client or EbayInventoryApiClient({})
         self.target_selector = MonitoringTargetSelector()
         self.source_refresher = SourceStateRefresher()
         self.marketplace_sync = MarketplaceStateSync(self.api_client)

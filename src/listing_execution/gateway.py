@@ -12,13 +12,13 @@ from .result_mapper import ExecutionResultMapper
 from .retry_classifier import RetryClassifier
 
 class ListingExecutionGateway:
-    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo):
+    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo, api_client=None):
         self.candidate_repo = candidate_repo
         self.evidence_repo = evidence_repo
         self.job_repo = job_repo
         self.listing_repo = listing_repo
         
-        self.api_client = EbayInventoryApiClient()
+        self.api_client = api_client or EbayInventoryApiClient({})
         self.guard = CandidateExecutionGuard()
         self.inv_executor = InventoryItemExecutor(self.api_client)
         self.off_executor = OfferExecutor(self.api_client)

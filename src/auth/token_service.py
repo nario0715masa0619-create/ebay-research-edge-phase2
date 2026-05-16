@@ -23,6 +23,7 @@ class EbayTokenService:
         if self.config.auth_enable_token_cache:
             cached = self.cache.get("Application", scope_str)
             if cached and not cached.is_expired(self.config.auth_refresh_lead_seconds):
+                cached.source_type = "cache"
                 return cached
 
         # Mint new token
@@ -31,11 +32,12 @@ class EbayTokenService:
             self.cache.set(token_info)
         return token_info
 
-    def get_user_access_token(self, scopes: List[str], seller_account_id: Optional[str] = None) -> TokenInfo:
+    def get_user_access_token(self, scopes: List[str], seller_account_id: Optional[str] = None, force: bool = False) -> TokenInfo:
         scope_str = " ".join(sorted(scopes))
-        if self.config.auth_enable_token_cache:
+        if self.config.auth_enable_token_cache and not force:
             cached = self.cache.get("User", scope_str, seller_account_id)
             if cached and not cached.is_expired(self.config.auth_refresh_lead_seconds):
+                cached.source_type = "cache"
                 return cached
 
         # Mint/Refresh user token
@@ -43,6 +45,10 @@ class EbayTokenService:
         if self.config.auth_enable_token_cache:
             self.cache.set(token_info)
         return token_info
+
+    def refresh_user_access_token(self, scopes: List[str], seller_account_id: Optional[str] = None, force: bool = True) -> TokenInfo:
+        # Alias for get_user_access_token with force=True by default
+        return self.get_user_access_token(scopes, seller_account_id, force=force)
 
     def _mint_app_token(self, scopes: List[str]) -> TokenInfo:
         creds = self.credential_provider.get_client_credentials()
@@ -67,7 +73,8 @@ class EbayTokenService:
             access_token=res_json["access_token"],
             expires_at=datetime.now() + timedelta(seconds=res_json["expires_in"]),
             scopes=scopes,
-            environment=self.config.ebay_environment
+            environment=self.config.ebay_environment,
+            source_type="mint"
         )
 
     def _refresh_user_token(self, scopes: List[str], seller_account_id: Optional[str]) -> TokenInfo:
@@ -99,7 +106,8 @@ class EbayTokenService:
             expires_at=datetime.now() + timedelta(seconds=res_json["expires_in"]),
             scopes=scopes,
             seller_account_id=seller_account_id,
-            environment=self.config.ebay_environment
+            environment=self.config.ebay_environment,
+            source_type="refresh"
         )
 
     def _build_basic_auth_header(self, client_id: str, client_secret: str) -> str:

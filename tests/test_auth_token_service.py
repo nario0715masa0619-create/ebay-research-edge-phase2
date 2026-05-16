@@ -36,10 +36,15 @@ def test_get_app_access_token_mint(token_service):
     token = token_service.get_app_access_token(["https://api.ebay.com/oauth/api_scope/commerce.taxonomy.readonly"])
     assert token.access_token == "app_token_123"
     assert token.token_type == "Application"
+    assert token.source_type == "mint"
     
     # Check cache
     cached = token_service.cache.get("Application", "https://api.ebay.com/oauth/api_scope/commerce.taxonomy.readonly")
     assert cached.access_token == "app_token_123"
+    
+    # Get again, should be cache
+    token2 = token_service.get_app_access_token(["https://api.ebay.com/oauth/api_scope/commerce.taxonomy.readonly"])
+    assert token2.source_type == "cache"
 
 @respx.mock
 def test_get_user_access_token_refresh(token_service):
