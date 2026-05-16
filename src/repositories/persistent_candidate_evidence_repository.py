@@ -45,6 +45,13 @@ class PersistentCandidateEvidenceRepository:
         stmt = delete(CandidateEvidenceModel).where(CandidateEvidenceModel.candidate_id == candidate_id)
         self.session.execute(stmt)
 
+    def get_by_evidence_id(self, evidence_id: str) -> Optional[CandidateEvidence]:
+        stmt = select(CandidateEvidenceModel).where(CandidateEvidenceModel.evidence_id == evidence_id)
+        result = self.session.execute(stmt).scalar_one_or_none()
+        if result:
+            return self._to_domain(result)
+        return None
+
     def _to_domain(self, model: CandidateEvidenceModel) -> CandidateEvidence:
         return CandidateEvidence(
             evidence_id=model.evidence_id,

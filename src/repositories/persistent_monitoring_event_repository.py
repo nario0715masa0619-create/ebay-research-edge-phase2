@@ -36,6 +36,13 @@ class PersistentMonitoringEventRepository:
         results = self.session.execute(stmt).scalars().all()
         return [self._to_domain(r) for r in results]
 
+    def get_by_event_id(self, event_id: str) -> Optional[MonitoringEvent]:
+        stmt = select(MonitoringEventModel).where(MonitoringEventModel.event_id == event_id)
+        result = self.session.execute(stmt).scalar_one_or_none()
+        if result:
+            return self._to_domain(result)
+        return None
+
     def _to_domain(self, model: MonitoringEventModel) -> MonitoringEvent:
         return MonitoringEvent(
             event_id=model.event_id,
