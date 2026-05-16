@@ -4,11 +4,23 @@ from .models import CliExecutionContext, CliCommandResult
 from .output_formatter import CliOutputFormatter
 from .bootstrap import AdminCliBootstrap
 
+from .commands.jobs import JobCommands
+from .commands.scheduler import SchedulerCommands
+from .commands.candidates import CandidateCommands
+from .commands.listings import ListingCommands
+from .commands.review import ReviewCommands
+from .commands.evidence import EvidenceCommands
+from .commands.events import EventCommands
+from .commands.jobruns import JobRunCommands
+from .commands.doctor import DoctorCommands
+from .commands.config import ConfigCommands
+
 def main():
     parser = argparse.ArgumentParser(description="eBay Research Edge Admin/Ops CLI")
     parser.add_argument("--format", choices=["table", "json", "text"], default="table")
     parser.add_argument("--dry-run", action="store_true", default=False)
     parser.add_argument("--confirm", action="store_true", default=False)
+    parser.add_argument("--force-recheck", action="store_true", default=False)
     
     subparsers = parser.add_subparsers(dest="group", help="Command groups")
     
@@ -31,7 +43,7 @@ def main():
     cand_sub = cand_p.add_subparsers(dest="command")
     cand_list = cand_sub.add_parser("list")
     cand_list.add_argument("--status")
-    cand_list.add_argument("--limit", type=int, default=20)
+    cand_list.add_argument("--limit", type=int)
     cand_show = cand_sub.add_parser("show")
     cand_show.add_argument("--sku", required=True)
 
@@ -41,11 +53,14 @@ def main():
     list_sub.add_parser("list")
     sync_p = list_sub.add_parser("sync")
     sync_p.add_argument("--sku", required=True)
+    withdraw_p = list_sub.add_parser("withdraw")
+    withdraw_p.add_argument("--sku", required=True)
     
     # Review
     review_p = subparsers.add_parser("review")
     review_sub = review_p.add_subparsers(dest="command")
-    review_sub.add_parser("list")
+    review_l = review_sub.add_parser("list")
+    review_l.add_argument("--reason")
     
     # Evidence
     evid_p = subparsers.add_parser("evidence")
@@ -87,89 +102,67 @@ def main():
     app = AdminCliBootstrap.bootstrap()
     
     context = CliExecutionContext(
-        command_path=f"{args.group} {args.command}" if hasattr(args, "command") else args.group,
+        command_path=f"{args.group} {args.command}" if hasattr(args, "command") and args.command else args.group,
         output_format=args.format,
         dry_run=args.dry_run,
         confirm=args.confirm,
+        force_recheck=args.force_recheck,
         limit=getattr(args, "limit", None)
     )
-    
-    # Simple dispatcher (in v0.1 we can just call services directly here or via a registry)
-    # I'll use a simple if-else for now to keep it straightforward
     
     result = None
     try:
         if args.group == "jobs":
-            if args.command == "list":
-                records = app.job_service.list_jobs()
-                result = CliCommandResult(command_path=context.command_path, records=records)
-            elif args.command == "run":
-                result = app.job_service.run_job(args.job_name, limit=args.limit, dry_run=args.dry_run)
+            cmd = JobCommands(app.job_service)
+            if args.command == "list": result = cmd.list(context)
+            elif args.command == "run": result = cmd.run(context, args.job_name, limit=args.limit)
         
         elif args.group == "scheduler":
-            if args.command == "status":
-                status = app.scheduler_service.get_status()
-                result = CliCommandResult(command_path=context.command_path, summary=status)
-            elif args.command == "run-once":
-                result = app.scheduler_service.run_once(dry_run=args.dry_run)
+            cmd = SchedulerCommands(app.scheduler_service)
+            if args.command == "status": result = cmd.status(context)
+            elif args.command == "run-once": result = cmd.run_once(context)
         
         elif args.group == "candidates":
-            if args.command == "list":
-                records = app.candidate_service.list_candidates(status=args.status, limit=args.limit)
-                result = CliCommandResult(command_path=context.command_path, records=records)
-            elif args.command == "show":
-                detail = app.candidate_service.get_candidate_detail(args.sku)
-                if detail:
-                    result = CliCommandResult(command_path=context.command_path, summary=detail)
-                else:
-                    result = CliCommandResult(command_path=context.command_path, status="error", errors=["Candidate not found."], exit_code=2)
+            cmd = CandidateCommands(app.candidate_service)
+            if args.command == "list": result = cmd.list(context, status=args.status)
+            elif args.command == "show": result = cmd.show(context, args.sku)
         
         elif args.group == "listings":
-            if args.command == "list":
-                records = app.listing_service.list_listings()
-                result = CliCommandResult(command_path=context.command_path, records=records)
-            elif args.command == "sync":
-                result = app.listing_service.sync_listing(args.sku, dry_run=args.dry_run)
+            cmd = ListingCommands(app.listing_service)
+            if args.command == "list": result = cmd.list(context)
+            elif args.command == "sync": result = cmd.sync(context, args.sku)
+            elif args.command == "withdraw": result = cmd.withdraw(context, args.sku)
         
         elif args.group == "review":
-            if args.command == "list":
-                records = app.review_service.list_review_queue()
-                result = CliCommandResult(command_path=context.command_path, records=records)
+            cmd = ReviewCommands(app.review_service)
+            if args.command == "list": result = cmd.list(context, reason=args.reason)
         
         elif args.group == "evidence":
-            if args.command == "list":
-                records = app.evidence_service.list_by_candidate(args.candidate_id)
-                result = CliCommandResult(command_path=context.command_path, records=records)
-            elif args.command == "show":
-                detail = app.evidence_service.get_detail(args.evidence_id)
-                result = CliCommandResult(command_path=context.command_path, summary=detail or {"error": "Not found"})
+            cmd = EvidenceCommands(app.evidence_service)
+            if args.command == "list": result = cmd.list(context, args.candidate_id)
+            elif args.command == "show": result = cmd.show(context, args.evidence_id)
         
         elif args.group == "events":
-            if args.command == "recent":
-                records = app.event_service.list_recent()
-                result = CliCommandResult(command_path=context.command_path, records=records)
-            elif args.command == "show":
-                detail = app.event_service.get_detail(args.event_id)
-                result = CliCommandResult(command_path=context.command_path, summary=detail or {"error": "Not found"})
+            cmd = EventCommands(app.event_service)
+            if args.command == "recent": result = cmd.recent(context)
+            elif args.command == "show": result = cmd.show(context, args.event_id)
         
         elif args.group == "jobruns":
-            if args.command == "recent":
-                records = app.jobrun_service.list_recent()
-                result = CliCommandResult(command_path=context.command_path, records=records)
-            elif args.command == "show":
-                detail = app.jobrun_service.get_detail(args.run_id)
-                result = CliCommandResult(command_path=context.command_path, summary=detail or {"error": "Not found"})
+            cmd = JobRunCommands(app.jobrun_service)
+            if args.command == "recent": result = cmd.recent(context)
+            elif args.command == "show": result = cmd.show(context, args.run_id)
 
         elif args.group == "doctor":
-            health = app.doctor_service.check_health()
-            result = CliCommandResult(command_path=context.command_path, summary=health, status=health["overall"])
+            cmd = DoctorCommands(app.doctor_service)
+            result = cmd.run(context)
             
         elif args.group == "config":
-            if args.command == "validate":
-                report = app.config_service.validate()
-                result = CliCommandResult(command_path=context.command_path, summary={"status": report["status"]}, records=[{"key": k, **v} for k, v in report["checks"].items()])
+            cmd = ConfigCommands(app.config_service)
+            if args.command == "validate": result = cmd.validate(context)
             
     except Exception as e:
+        import traceback
+        if context.verbose: traceback.print_exc()
         result = CliCommandResult(command_path=context.command_path, status="error", errors=[str(e)], exit_code=5)
 
     if result:

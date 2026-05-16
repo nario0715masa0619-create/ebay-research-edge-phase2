@@ -6,9 +6,13 @@ class ReviewOpsService:
     def __init__(self, candidate_repo: PersistentProductCandidateRepository):
         self.candidate_repo = candidate_repo
 
-    def list_review_queue(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def list_review_queue(self, limit: int = 50, reason: Optional[str] = None) -> List[Dict[str, Any]]:
         # This is a bit simplified; real review queue might involve more complex filters
         candidates = self.candidate_repo.list_by_status("review_required", limit=limit)
+        
+        if reason:
+            candidates = [c for c in candidates if c.review_reason == reason]
+            
         return [
             {
                 "sku": c.sku,

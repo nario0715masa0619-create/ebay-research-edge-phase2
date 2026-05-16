@@ -22,11 +22,19 @@ class EvidenceOpsService:
         e = self.evidence_repo.get_by_evidence_id(evidence_id)
         if not e:
             return None
+        
+        # Simple masking for secrets
+        payload = dict(e.evidence_payload)
+        secret_keys = ["token", "secret", "password", "key", "auth"]
+        for k in list(payload.keys()):
+            if any(sk in k.lower() for sk in secret_keys):
+                payload[k] = "***MASKED***"
+
         return {
             "evidence_id": e.evidence_id,
             "candidate_id": e.candidate_id,
             "type": e.evidence_type,
-            "payload": e.evidence_payload,
+            "payload": payload,
             "version": e.rule_version,
             "created_at": e.created_at.isoformat()
         }

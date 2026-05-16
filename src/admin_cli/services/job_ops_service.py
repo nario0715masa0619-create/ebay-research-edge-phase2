@@ -21,7 +21,7 @@ class JobOpsService:
             for j in jobs
         ]
 
-    def run_job(self, job_name: str, limit: Optional[int] = None, dry_run: bool = True) -> CliCommandResult:
+    def run_job(self, job_name: str, limit: Optional[int] = None, dry_run: bool = True, force_recheck: bool = False) -> CliCommandResult:
         job_def = self.orchestrator.engine.registry.get_job(job_name)
         if not job_def:
             return CliCommandResult(command_path="jobs run", status="error", errors=[f"Job '{job_name}' not found."], exit_code=2)
@@ -35,7 +35,7 @@ class JobOpsService:
         job_def.default_limit = limit if limit is not None else orig_limit
         
         try:
-            res = self.orchestrator.trigger_job(job_name, dry_run=dry_run)
+            res = self.orchestrator.trigger_job(job_name, dry_run=dry_run, force_recheck=force_recheck)
             if not res:
                 return CliCommandResult(command_path="jobs run", status="error", errors=["Job execution failed to start."], exit_code=5)
             
