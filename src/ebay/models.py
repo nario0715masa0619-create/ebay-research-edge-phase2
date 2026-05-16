@@ -175,6 +175,7 @@ class EbayListing:
     offer_id: Optional[str] = None
     offer_status: str = "not_created" # not_created, created, published, failed
     listing_id: Optional[str] = None
+    listing_status: Optional[str] = None # ACTIVE, ENDED, OUT_OF_STOCK
     
     listing_price_usd: float = 0.0
     quantity: int = 1

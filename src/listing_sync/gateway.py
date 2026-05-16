@@ -53,7 +53,9 @@ class ListingSyncRecoveryGateway:
         remote_state = self.state_fetcher.fetch_remote_state(request.sku, request.offer_id or (listing.offer_id if listing else None))
         self._save_evidence(candidate.candidate_id, "listing_remote_state", remote_state)
         
-        if remote_state["errors"] and not remote_state["offer"] and not remote_state["inventory_item"]:
+        # If we have errors that are NOT 404, or if we have no state at all and it was a real API error
+        real_errors = [e for e in remote_state["errors"] if "404" not in e]
+        if real_errors and not remote_state["offer"] and not remote_state["inventory_item"]:
             res.sync_status = "failed"
             res.error_summary = "; ".join(remote_state["errors"])
             return res
@@ -65,8 +67,8 @@ class ListingSyncRecoveryGateway:
         res.ebay_inventory_found = comparison["remote_inventory_found"]
         self._save_evidence(candidate.candidate_id, "listing_state_comparison", comparison)
 
-        # 4. Decision
-        decision = self.decision_engine.decide(request, comparison, remote_state)
+        # 4. Decide Action
+        decision = self.decision_engine.decide(request, candidate, comparison, remote_state)
         res.recovery_action = decision["action"]
         res.review_required_flag = decision["review_required"]
         self._save_evidence(candidate.candidate_id, "listing_recovery_decision", decision)
@@ -77,6 +79,9 @@ class ListingSyncRecoveryGateway:
             return res
 
         # 5. Execution
+        event_type = "listing_sync_completed"
+        action_taken = "keep"
+
         if decision["action"] == "repair_db_ids_only":
             if not listing:
                 listing = EbayListing(
@@ -87,18 +92,35 @@ class ListingSyncRecoveryGateway:
                     quantity=0
                 )
             self.mapper.update_listing_from_remote(listing, remote_state["offer"])
-            self.listing_repo.upsert(listing)
+            if not request.dry_run:
+                self.listing_repo.upsert(listing)
             res.sync_status = "repaired"
             res.recovery_applied_flag = True
+            event_type = "listing_db_repaired"
+            action_taken = "repair_ids"
+
+        elif decision["action"] == "repair_db_status_only":
+            if listing:
+                self.mapper.update_listing_from_remote(listing, remote_state["offer"])
+                if not request.dry_run:
+                    self.listing_repo.upsert(listing)
+            self.mapper.update_candidate_from_sync(candidate, "repaired", False, remote_state["offer"])
+            if not request.dry_run:
+                self.candidate_repo.upsert(candidate)
+            res.sync_status = "repaired"
+            res.recovery_applied_flag = True
+            event_type = "listing_db_repaired"
+            action_taken = "repair_status"
 
         elif decision["action"] == "reconcile_remote_from_db" and listing:
-            # Sync remote to match DB (e.g. price/qty)
             offer_id = remote_state["offer"]["offerId"]
-            rec_res = self.inv_executor.execute_price_qty_sync(candidate.sku, offer_id, listing.listing_price_usd, listing.quantity)
+            rec_res = self.inv_executor.execute_price_qty_sync(candidate.sku, offer_id, listing.listing_price_usd, listing.quantity, dry_run=request.dry_run)
             self._save_evidence(candidate.candidate_id, "listing_recovery_execution", rec_res)
             if rec_res.get("success"):
                 res.sync_status = "repaired"
                 res.recovery_applied_flag = True
+                event_type = "listing_remote_reconciled"
+                action_taken = "reconcile_remote"
             else:
                 res.sync_status = "failed"
                 res.error_summary = str(rec_res)
@@ -106,13 +128,31 @@ class ListingSyncRecoveryGateway:
         elif decision["action"] == "keep_db_and_mark_synced":
             if listing and remote_state["offer"]:
                 self.mapper.update_listing_from_remote(listing, remote_state["offer"])
-                self.listing_repo.upsert(listing)
+                if not request.dry_run:
+                    self.listing_repo.upsert(listing)
             res.sync_status = "synced"
 
         # 6. Finalize
         if res.review_required_flag:
             self.mapper.update_candidate_from_sync(candidate, res.sync_status, True)
-            self.candidate_repo.upsert(candidate)
+            if not request.dry_run:
+                self.candidate_repo.upsert(candidate)
+            event_type = "listing_sync_review_required"
+            action_taken = "review"
+
+        # Log Monitoring Event
+        if self.event_repo and not request.dry_run:
+            event = MonitoringEvent(
+                event_id=str(uuid.uuid4()),
+                candidate_id=candidate.candidate_id,
+                sku=candidate.sku,
+                event_scope="marketplace",
+                event_type=event_type,
+                before_value="unknown",
+                after_value=res.sync_status,
+                action_taken=action_taken
+            )
+            self.event_repo.save(event)
 
         res.success_flag = (res.sync_status in ["synced", "repaired"])
         return res

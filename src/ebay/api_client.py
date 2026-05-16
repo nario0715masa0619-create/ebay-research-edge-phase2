@@ -91,3 +91,20 @@ class EbayInventoryApiClient(EbayBaseApiClient):
             payload=payload,
             dry_run=dry_run
         )
+
+    def withdraw_offer(self, offer_id: str, dry_run: bool = False) -> Dict[str, Any]:
+        return self.execute_with_auth(
+            operation_key="inventory.withdraw_offer",
+            http_method="POST",
+            path=f"/sell/inventory/v1/offer/{offer_id}/withdraw",
+            dry_run=dry_run
+        )
+
+    def bulk_update_price_quantity(self, payload: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
+        return self.execute_with_auth(
+            operation_key="inventory.bulk_update_price_quantity",
+            http_method="POST",
+            path="/sell/inventory/v1/bulk_update_price_quantity",
+            payload=payload,
+            dry_run=dry_run
+        )
