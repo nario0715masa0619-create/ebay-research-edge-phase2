@@ -1,5 +1,3 @@
-from typing import Dict, Any, Optional
-
 from typing import Dict, Any, Optional, List
 from .base_client import EbayBaseApiClient
 
@@ -66,6 +64,30 @@ class EbayInventoryApiClient(EbayBaseApiClient):
             operation_key="inventory.bulk_update_price_quantity",
             http_method="POST",
             path="/sell/inventory/v1/bulk_update_price_quantity",
+            payload=payload,
+            dry_run=dry_run
+        )
+
+    def get_offers(self, sku: str) -> Dict[str, Any]:
+        return self.execute_with_auth(
+            operation_key="inventory.get_offers",
+            http_method="GET",
+            path="/sell/inventory/v1/offer",
+            params={"sku": sku}
+        )
+
+    def get_inventory_item(self, sku: str) -> Dict[str, Any]:
+        return self.execute_with_auth(
+            operation_key="inventory.get_inventory_item",
+            http_method="GET",
+            path=f"/sell/inventory/v1/inventory_item/{sku}"
+        )
+
+    def update_offer(self, offer_id: str, payload: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
+        return self.execute_with_auth(
+            operation_key="inventory.update_offer",
+            http_method="PUT",
+            path=f"/sell/inventory/v1/offer/{offer_id}",
             payload=payload,
             dry_run=dry_run
         )

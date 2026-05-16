@@ -11,6 +11,8 @@ class OAuthScopeRegistry:
             "inventory.publish_offer": ["https://api.ebay.com/oauth/api_scope/sell.inventory"],
             "inventory.withdraw_offer": ["https://api.ebay.com/oauth/api_scope/sell.inventory"],
             "inventory.get_offer": ["https://api.ebay.com/oauth/api_scope/sell.inventory.readonly"],
+            "inventory.get_offers": ["https://api.ebay.com/oauth/api_scope/sell.inventory.readonly"],
+            "inventory.update_offer": ["https://api.ebay.com/oauth/api_scope/sell.inventory"],
             "inventory.bulk_update_price_quantity": ["https://api.ebay.com/oauth/api_scope/sell.inventory"],
             
             # Sell Account API
