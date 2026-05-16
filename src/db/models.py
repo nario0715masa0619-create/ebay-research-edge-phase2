@@ -104,6 +104,7 @@ class EbayListingModel(Base):
     offer_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True)
     offer_status: Mapped[str] = mapped_column(String(50), default="not_created")
     listing_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True)
+    listing_status: Mapped[Optional[str]] = mapped_column(String(50))
     
     listing_price_usd: Mapped[float] = mapped_column(Float, default=0.0)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
