@@ -3,20 +3,37 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.db.base import Base
+from src.db.config import DatabaseConfig
 from src.db.bootstrap import bootstrap_database, get_repository_provider
 from src.db.session import create_session_factory
 from src.db.models import *
 from src.ebay.models import SourceItem, ProductCandidate, EbayListing, MonitoringEvent
 from src.db.unit_of_work import UnitOfWork
 
-# Use in-memory SQLite for testing
-TEST_DB_URL = "sqlite:///:memory:"
+# Use file SQLite for testing to avoid connection-specific memory DB issues
+TEST_DB_URL = "sqlite:///test_shared.db"
 
 @pytest.fixture(scope="module")
 def engine():
-    engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+    if os.path.exists("test_shared.db"):
+        os.remove("test_shared.db")
+        
+    # Use file DB for persistence
+    db_url = "sqlite:///test_shared.db"
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    
+    # Ensure models are registered on this thread
+    from src.db import models
     Base.metadata.create_all(engine)
-    return engine
+    
+    yield engine
+    
+    engine.dispose()
+    if os.path.exists("test_shared.db"):
+        try:
+            os.remove("test_shared.db")
+        except:
+            pass
 
 @pytest.fixture
 def session_factory(engine):
@@ -159,3 +176,26 @@ def test_job_run_append_progress(repos):
     assert saved.processed_count == 2
     assert saved.success_count == 1
     assert saved.excluded_count == 1
+
+def test_listed_status_protection(repos):
+    repo = repos["candidate"]
+    c = ProductCandidate(
+        candidate_id="CAND-P01",
+        source_item_id="SRC-P01",
+        source_platform="mercari",
+        sku="SKU-P01",
+        source_url="http://test.com/p1",
+        source_title="Protected Item",
+        source_price_jpy=1000.0,
+        status="listed"
+    )
+    repo.save(c)
+    repos["session"].commit()
+    
+    # Try to downgrade
+    c.status = "collected"
+    repo.upsert(c)
+    repos["session"].commit()
+    
+    saved = repo.get_by_candidate_id("CAND-P01")
+    assert saved.status == "listed" # Protected

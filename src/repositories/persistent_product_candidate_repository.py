@@ -15,7 +15,12 @@ class PersistentProductCandidateRepository:
     def upsert(self, candidate: ProductCandidate):
         existing = self.get_by_candidate_id(candidate.candidate_id)
         if existing:
-            # Simplified update: replace most fields
+            # Protection: don't downgrade 'listed' status to earlier status
+            if existing.status == "listed" and candidate.status != "listed":
+                # For now, keep the status as 'listed' or handle as per policy.
+                # Instruction says "listed 状態の candidate を通常 upsert で後退させない"
+                candidate.status = "listed"
+                
             model_data = self._to_dict(candidate)
             stmt = update(ProductCandidateModel).where(ProductCandidateModel.candidate_id == candidate.candidate_id).values(**model_data)
             self.session.execute(stmt)

@@ -4,26 +4,29 @@ from alembic import command
 from .engine import create_engine_from_config
 from .base import Base
 from .config import DatabaseConfig
+# Import models here to ensure they are registered with Base.metadata
+from . import models
 
 logger = logging.getLogger(__name__)
 
 def bootstrap_database(auto_upgrade: bool = DatabaseConfig.ALEMBIC_AUTO_UPGRADE_ON_BOOT):
     engine = create_engine_from_config()
-    
     if auto_upgrade:
         logger.info("Auto-upgrading database schema via Alembic...")
         try:
-            # In a real setup, we would point to alembic.ini
-            # Since paths might be tricky, we can also use create_all as a baseline
             alembic_cfg = Config("alembic.ini")
             command.upgrade(alembic_cfg, "head")
         except Exception as e:
             logger.warning(f"Alembic upgrade failed: {e}. Falling back to Base.metadata.create_all.")
-            Base.metadata.create_all(engine)
+            with engine.begin() as conn:
+                Base.metadata.create_all(conn)
     else:
         # Fallback for MVP
         logger.info("Creating tables via Base.metadata.create_all...")
-        Base.metadata.create_all(engine)
+        with engine.begin() as conn:
+            Base.metadata.create_all(conn)
+    
+    engine.dispose()
     
     logger.info("Database bootstrap completed.")
 
