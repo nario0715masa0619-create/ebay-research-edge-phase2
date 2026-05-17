@@ -14,6 +14,8 @@ from .commands.events import EventCommands
 from .commands.jobruns import JobRunCommands
 from .commands.doctor import DoctorCommands
 from .commands.config import ConfigCommands
+from .commands.notifications import NotificationCommands
+from .commands.sellers import SellerCommands
 
 def main():
     parser = argparse.ArgumentParser(description="eBay Research Edge Admin/Ops CLI")
@@ -92,6 +94,91 @@ def main():
     config_sub = config_p.add_subparsers(dest="command")
     config_sub.add_parser("validate")
     
+    # Notifications
+    ntf_p = subparsers.add_parser("notifications")
+    ntf_sub = ntf_p.add_subparsers(dest="command")
+    
+    ntf_recent = ntf_sub.add_parser("recent")
+    ntf_recent.add_argument("--limit", type=int, default=50)
+    ntf_recent.add_argument("--severity")
+    ntf_recent.add_argument("--channel")
+    ntf_recent.add_argument("--event-type")
+    
+    ntf_failed = ntf_sub.add_parser("failed")
+    ntf_failed.add_argument("--limit", type=int, default=50)
+    ntf_failed.add_argument("--channel")
+    ntf_failed.add_argument("--event-type")
+    
+    ntf_show = ntf_sub.add_parser("show")
+    ntf_show.add_argument("history_id")
+    
+    ntf_by_sku = ntf_sub.add_parser("by-sku")
+    ntf_by_sku.add_argument("--sku", required=True)
+    ntf_by_sku.add_argument("--limit", type=int, default=20)
+    
+    ntf_by_event = ntf_sub.add_parser("by-event")
+    ntf_by_event.add_argument("--event-type", required=True)
+    ntf_by_event.add_argument("--limit", type=int, default=20)
+    
+    ntf_resend = ntf_sub.add_parser("resend")
+    ntf_resend.add_argument("--history-id")
+    ntf_resend.add_argument("--event-id")
+    ntf_resend.add_argument("--channel")
+    ntf_resend.add_argument("--force-resend", action="store_true")
+    
+    ntf_test = ntf_sub.add_parser("test")
+    ntf_test.add_argument("--channel", required=True)
+    ntf_test.add_argument("--title")
+    ntf_test.add_argument("--summary")
+    
+    ntf_rules = ntf_sub.add_parser("rules")
+    ntf_rules_sub = ntf_rules.add_subparsers(dest="subcommand")
+    ntf_rules_sub.add_parser("list")
+    ntf_rules_show = ntf_rules_sub.add_parser("show")
+    ntf_rules_show.add_argument("rule_name")
+    
+    ntf_rules_for = ntf_rules_sub.add_parser("for-event")
+    ntf_rules_for.add_argument("--event-type", required=True)
+    ntf_rules_for.add_argument("--severity", default="info")
+    
+    ntf_sub.add_parser("channels")
+    
+    ntf_stats = ntf_sub.add_parser("stats")
+    ntf_stats.add_argument("--hours", type=int, default=24)
+    ntf_stats.add_argument("--event-type")
+    
+    # Ops (Sellers/Environments)
+    ops_p = subparsers.add_parser("ops")
+    ops_sub = ops_p.add_subparsers(dest="subgroup")
+    
+    # Ops Sellers
+    seller_p = ops_sub.add_parser("sellers")
+    seller_sub = seller_p.add_subparsers(dest="command")
+    seller_sub.add_parser("list")
+    
+    seller_bind = seller_sub.add_parser("bindings")
+    seller_bind.add_argument("--seller-account-id")
+    
+    seller_act = seller_sub.add_parser("activate")
+    seller_act.add_argument("--seller-account-id", required=True)
+    seller_act.add_argument("--environment", required=True)
+    
+    seller_doc = seller_sub.add_parser("doctor")
+    seller_doc.add_argument("--seller-account-id", required=True)
+    
+    seller_pol = seller_sub.add_parser("policies")
+    seller_pol.add_argument("--seller-account-id", required=True)
+    seller_pol.add_argument("--marketplace", required=True)
+    
+    seller_loc = seller_sub.add_parser("locations")
+    seller_loc.add_argument("--seller-account-id", required=True)
+    seller_loc.add_argument("--location-key", required=True)
+    
+    # Ops Environments
+    env_p = ops_sub.add_parser("environments")
+    env_sub = env_p.add_subparsers(dest="command")
+    env_sub.add_parser("list")
+    
     args = parser.parse_args()
     
     if not args.group:
@@ -159,6 +246,34 @@ def main():
         elif args.group == "config":
             cmd = ConfigCommands(app.config_service)
             if args.command == "validate": result = cmd.validate(context)
+            
+        elif args.group == "notifications":
+            cmd = NotificationCommands(app.notification_service)
+            if args.command == "recent": result = cmd.recent(context, limit=args.limit, severity=args.severity, channel=args.channel, event_type=args.event_type)
+            elif args.command == "failed": result = cmd.failed(context, limit=args.limit, channel=args.channel, event_type=args.event_type)
+            elif args.command == "show": result = cmd.show(context, args.history_id)
+            elif args.command == "by-sku": result = cmd.by_sku(context, args.sku, limit=args.limit)
+            elif args.command == "by-event": result = cmd.by_event(context, args.event_type, limit=args.limit)
+            elif args.command == "resend": result = cmd.resend(context, history_id=args.history_id, event_id=args.event_id, channel=args.channel, force=args.force_resend)
+            elif args.command == "test": result = cmd.test(context, args.channel, title=args.title, summary=args.summary)
+            elif args.command == "rules":
+                if args.subcommand == "list": result = cmd.list_rules(context)
+                elif args.subcommand == "show": result = cmd.show_rule(context, args.rule_name)
+                elif args.subcommand == "for-event": result = cmd.rules_for_event(context, args.event_type, severity=args.severity)
+            elif args.command == "channels": result = cmd.channels(context)
+            elif args.command == "stats": result = cmd.stats(context, hours=args.hours, event_type=args.event_type)
+            
+        elif args.group == "ops":
+            cmd = SellerCommands(app.seller_ops, app.seller_doctor, app.seller_snapshot_ops)
+            if args.subgroup == "sellers":
+                if args.command == "list": result = cmd.list_sellers(context)
+                elif args.command == "bindings": result = cmd.list_bindings(context, seller_account_id=args.seller_account_id)
+                elif args.command == "activate": result = cmd.activate_binding(context, args.seller_account_id, args.environment)
+                elif args.command == "doctor": result = cmd.doctor_seller(context, args.seller_account_id)
+                elif args.command == "policies": result = cmd.show_policies(context, args.seller_account_id, args.marketplace)
+                elif args.command == "locations": result = cmd.show_locations(context, args.seller_account_id, args.location_key)
+            elif args.subgroup == "environments":
+                if args.command == "list": result = cmd.list_environments(context)
             
     except Exception as e:
         import traceback

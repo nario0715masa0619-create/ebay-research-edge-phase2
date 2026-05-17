@@ -9,7 +9,7 @@ class PersistentJobRunRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def start_run(self, job_name: str, job_scope: str = "all", context: Dict[str, Any] = None) -> JobRun:
+    def start_run(self, job_name: str, job_scope: str = "all", context: Dict[str, Any] = None, seller_account_id: str = None, environment_type: str = None, marketplace_id: str = None) -> JobRun:
         import uuid
         run_id = str(uuid.uuid4())
         run = JobRun(run_id=run_id, job_name=job_name, job_scope=job_scope)
@@ -19,7 +19,10 @@ class PersistentJobRunRepository:
             job_scope=run.job_scope,
             status=run.status,
             started_at=run.started_at,
-            context_json=context
+            context_json=context,
+            seller_account_id=seller_account_id,
+            environment_type=environment_type,
+            marketplace_id=marketplace_id
         )
         self.session.add(model)
         return run

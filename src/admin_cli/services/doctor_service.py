@@ -5,10 +5,11 @@ from src.auth.token_service import EbayTokenService
 from src.orchestrator.orchestrator import ScheduledOrchestrator
 
 class DoctorService:
-    def __init__(self, session_manager: SessionManager, token_service: EbayTokenService, orchestrator: ScheduledOrchestrator):
+    def __init__(self, session_manager: SessionManager, token_service: EbayTokenService, orchestrator: ScheduledOrchestrator, notification_dispatcher=None):
         self.session_manager = session_manager
         self.token_service = token_service
         self.orchestrator = orchestrator
+        self.notification_dispatcher = notification_dispatcher
 
     def check_health(self) -> Dict[str, Any]:
         results = {
@@ -19,8 +20,22 @@ class DoctorService:
         }
         
         if any(v["status"] != "ok" for v in results.values() if isinstance(v, dict)):
-            results["overall"] = "degraded"
+            results["overall"] = "fail" if any(v["status"] == "fail" for v in results.values() if isinstance(v, dict)) else "warning"
             
+            # Notify if dispatcher is available
+            if hasattr(self, "notification_dispatcher") and self.notification_dispatcher:
+                from src.notification.models import NotificationEvent
+                event = NotificationEvent(
+                    event_type="doctor_check_failed",
+                    source_layer="admin_cli",
+                    source_component="DoctorService",
+                    title=f"System Health Check: {results['overall'].upper()}",
+                    summary="One or more health checks failed.",
+                    severity="error" if results["overall"] == "fail" else "warning",
+                    priority="high"
+                )
+                self.notification_dispatcher.notify(event)
+                
         return results
 
     def _check_db(self) -> Dict[str, Any]:

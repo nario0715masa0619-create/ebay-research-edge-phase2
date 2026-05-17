@@ -2,7 +2,12 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from .config import DatabaseConfig
 
-def create_engine_from_config(database_url: str = DatabaseConfig.DATABASE_URL, echo: bool = DatabaseConfig.DB_ECHO):
+def create_engine_from_config(database_url: str = None, echo: bool = None):
+    if database_url is None:
+        database_url = DatabaseConfig.DATABASE_URL
+    if echo is None:
+        echo = DatabaseConfig.DB_ECHO
+        
     connect_args = {}
     if database_url.startswith("sqlite"):
         connect_args["timeout"] = DatabaseConfig.DB_BUSY_TIMEOUT_MS / 1000.0

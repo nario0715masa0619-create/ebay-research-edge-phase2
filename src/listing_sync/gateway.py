@@ -18,12 +18,13 @@ from .retry_classifier import SyncRetryClassifier
 logger = logging.getLogger(__name__)
 
 class ListingSyncRecoveryGateway:
-    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo, event_repo=None, api_client=None):
+    def __init__(self, candidate_repo, evidence_repo, job_repo, listing_repo, event_repo=None, api_client=None, notification_dispatcher=None):
         self.candidate_repo = candidate_repo
         self.evidence_repo = evidence_repo
         self.job_repo = job_repo
         self.listing_repo = listing_repo
         self.event_repo = event_repo
+        self.notification_dispatcher = notification_dispatcher
         
         self.api_client = api_client or EbayInventoryApiClient({})
         
@@ -155,7 +156,57 @@ class ListingSyncRecoveryGateway:
             self.event_repo.save(event)
 
         res.success_flag = (res.sync_status in ["synced", "repaired"])
+        
+        # 7. Notify if needed
+        self._notify_if_needed(res, candidate, request.dry_run)
+        
         return res
+
+    def _notify_if_needed(self, res: ListingSyncResult, candidate, dry_run: bool):
+        if not self.notification_dispatcher:
+            return
+            
+        from src.notification.models import NotificationEvent
+        
+        if res.review_required_flag:
+            event = NotificationEvent(
+                event_type="listing_sync_review_required",
+                source_layer="listing_sync",
+                sku=res.sku,
+                candidate_id=res.candidate_id,
+                title=f"Manual Review Required for Sync: {res.sku}",
+                summary=f"Drift detected: {', '.join(res.detected_drift_types)}",
+                severity="warning",
+                priority="normal",
+                review_required_flag=True
+            )
+            self.notification_dispatcher.notify(event, dry_run=dry_run)
+        
+        elif res.sync_status == "drift_detected" or (res.detected_drift_types and res.sync_status != "repaired"):
+            event = NotificationEvent(
+                event_type="listing_drift_detected",
+                source_layer="listing_sync",
+                sku=res.sku,
+                candidate_id=res.candidate_id,
+                title=f"Listing Drift Detected: {res.sku}",
+                summary=f"Types: {', '.join(res.detected_drift_types)}",
+                severity="warning",
+                priority="normal"
+            )
+            self.notification_dispatcher.notify(event, dry_run=dry_run)
+        
+        elif res.sync_status == "failed":
+            event = NotificationEvent(
+                event_type="listing_recovery_failed",
+                source_layer="listing_sync",
+                sku=res.sku,
+                candidate_id=res.candidate_id,
+                title=f"Recovery Failed: {res.sku}",
+                summary=res.error_summary,
+                severity="error",
+                priority="high"
+            )
+            self.notification_dispatcher.notify(event, dry_run=dry_run)
 
     def _save_evidence(self, candidate_id: str, e_type: str, payload: dict):
         evidence = CandidateEvidence(

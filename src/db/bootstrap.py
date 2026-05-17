@@ -38,6 +38,7 @@ def get_repository_provider(session_factory, backend: str = "sqlite"):
     from src.repositories.persistent_ebay_listing_repository import PersistentEbayListingRepository
     from src.repositories.persistent_monitoring_event_repository import PersistentMonitoringEventRepository
     from src.repositories.persistent_job_run_repository import PersistentJobRunRepository
+    from src.repositories.persistent_notification_history_repository import PersistentNotificationHistoryRepository
     
     session = session_factory()
     return {
@@ -47,5 +48,6 @@ def get_repository_provider(session_factory, backend: str = "sqlite"):
         "listing": PersistentEbayListingRepository(session),
         "event": PersistentMonitoringEventRepository(session),
         "job": PersistentJobRunRepository(session),
+        "notification": PersistentNotificationHistoryRepository(session),
         "session": session
     }

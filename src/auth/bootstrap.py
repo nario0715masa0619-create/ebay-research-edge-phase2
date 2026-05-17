@@ -8,10 +8,10 @@ from .rate_limit import RateLimiter
 from .retry_policy import RetryBackoffPolicy
 from .error_classifier import AuthErrorClassifier
 
-def bootstrap_auth_layer(config: Optional[AuthConfig] = None):
+def bootstrap_auth_layer(config: Optional[AuthConfig] = None, seller_resolver = None):
     cfg = config or AuthConfig()
     
-    cred_provider = EbayOAuthCredentialProvider(cfg)
+    cred_provider = EbayOAuthCredentialProvider(cfg, seller_resolver=seller_resolver)
     token_cache = InMemoryTokenCache()
     token_service = EbayTokenService(cfg, cred_provider, token_cache)
     scope_registry = OAuthScopeRegistry()

@@ -35,6 +35,11 @@ class JobExecutionContext:
     limit: Optional[int] = None
     kwargs: Dict[str, Any] = field(default_factory=dict)
     correlation_id: Optional[str] = None
+    
+    # Seller Context
+    seller_account_id: Optional[str] = None
+    environment_type: Optional[str] = None
+    marketplace_id: Optional[str] = None
 
 @dataclass
 class ScheduledJobResult:
@@ -58,6 +63,7 @@ class ScheduledJobResult:
 @dataclass
 class SchedulerCycleResult:
     cycle_id: str
+    seller_account_id: Optional[str] = None
     started_at: datetime = field(default_factory=datetime.now)
     finished_at: Optional[datetime] = None
     scheduled_job_count: int = 0

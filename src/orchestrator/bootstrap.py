@@ -15,7 +15,8 @@ class OrchestratorBootstrap:
     def bootstrap(
         repositories: Dict[str, Any],
         pipelines: Dict[str, Any],
-        gateways: Dict[str, Any]
+        gateways: Dict[str, Any],
+        notification_dispatcher: Any = None
     ) -> ScheduledOrchestrator:
         """
         Wires together the Orchestrator with all necessary dependencies.
@@ -43,7 +44,7 @@ class OrchestratorBootstrap:
         }
         
         # 4. Engine
-        engine = SchedulerEngine(registry, lock_manager, runner_map)
+        engine = SchedulerEngine(registry, lock_manager, runner_map, notification_dispatcher=notification_dispatcher)
         
         # 5. Orchestrator
         orchestrator = ScheduledOrchestrator(engine)

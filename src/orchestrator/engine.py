@@ -11,17 +11,19 @@ from .result_aggregator import JobResultAggregator
 logger = logging.getLogger(__name__)
 
 class SchedulerEngine:
-    def __init__(self, registry: JobRegistry, lock_manager: JobLockManager, runner_map: Dict[str, Any]):
+    def __init__(self, registry: JobRegistry, lock_manager: JobLockManager, runner_map: Dict[str, Any], notification_dispatcher=None):
         self.registry = registry
         self.lock_manager = lock_manager
         self.runner_map = runner_map
+        self.notification_dispatcher = notification_dispatcher
         self.resolver = JobDependencyResolver()
         self.aggregator = JobResultAggregator()
         self.last_run_times: Dict[str, datetime] = {}
 
-    def run_cycle(self, force_jobs: List[str] = None, dry_run: bool = False) -> SchedulerCycleResult:
+    def run_cycle(self, force_jobs: List[str] = None, dry_run: bool = False, seller_context: Any = None) -> SchedulerCycleResult:
         cycle_id = str(uuid.uuid4())
         cycle_res = SchedulerCycleResult(cycle_id=cycle_id, started_at=datetime.now())
+        cycle_res.seller_account_id = seller_context.seller_account_id if seller_context else None
         
         # 1. Identify due jobs
         due_jobs = self._identify_due_jobs(force_jobs)
@@ -55,7 +57,7 @@ class SchedulerEngine:
 
             try:
                 # Dispatch
-                result = self._execute_job(job_def, cycle_id, dry_run)
+                result = self._execute_job(job_def, cycle_id, dry_run, seller_context=seller_context)
                 cycle_res.results.append(result)
                 job_status_map[job_def.job_name] = result.status
                 self.last_run_times[job_def.job_name] = datetime.now()
@@ -105,13 +107,16 @@ class SchedulerEngine:
                     return False
         return True
 
-    def _execute_job(self, job_def: JobDefinition, cycle_id: str, dry_run: bool) -> ScheduledJobResult:
+    def _execute_job(self, job_def: JobDefinition, cycle_id: str, dry_run: bool, seller_context: Any = None) -> ScheduledJobResult:
         context = JobExecutionContext(
             scheduler_run_id=cycle_id,
             job_name=job_def.job_name,
             dry_run=dry_run,
             limit=job_def.default_limit,
-            kwargs=job_def.default_kwargs.copy()
+            kwargs=job_def.default_kwargs.copy(),
+            seller_account_id=seller_context.seller_account_id if seller_context else None,
+            environment_type=seller_context.environment_type if seller_context else None,
+            marketplace_id=seller_context.marketplace_id if seller_context else None
         )
         
         runner = self.runner_map.get(job_def.target_runner_name)
@@ -130,10 +135,12 @@ class SchedulerEngine:
             # All our runners are expected to have a method like run_xxx or execute_xxx
             # We'll use a standard interface or dispatch by name
             raw_result = self._dispatch_call(runner, job_def, context)
-            return self.aggregator.aggregate(job_def.job_name, context, raw_result)
+            res = self.aggregator.aggregate(job_def.job_name, context, raw_result)
+            self._notify_if_needed(res, dry_run, context)
+            return res
         except Exception as e:
             logger.exception(f"Error executing job '{job_def.job_name}': {e}")
-            return ScheduledJobResult(
+            res = ScheduledJobResult(
                 job_name=job_def.job_name,
                 run_id="error",
                 scheduler_run_id=cycle_id,
@@ -141,6 +148,43 @@ class SchedulerEngine:
                 error_summary=str(e),
                 success_flag=False
             )
+            self._notify_if_needed(res, dry_run, context)
+            return res
+
+    def _notify_if_needed(self, res: ScheduledJobResult, dry_run: bool, context: JobExecutionContext):
+        if not self.notification_dispatcher:
+            return
+            
+        from src.notification.models import NotificationEvent
+        
+        if not res.success_flag:
+            event = NotificationEvent(
+                event_type="scheduled_job_failed",
+                source_layer="orchestrator",
+                source_run_id=res.run_id,
+                source_job_name=res.job_name,
+                title=f"Job Failed: {res.job_name}",
+                summary=res.error_summary,
+                severity="error",
+                priority="high",
+                seller_account_id=context.seller_account_id
+            )
+            self.notification_dispatcher.notify(event, dry_run=dry_run)
+        
+        elif res.review_count > 0 or res.review_required_count > 0:
+            event = NotificationEvent(
+                event_type="scheduled_job_completed_with_reviews",
+                source_layer="orchestrator",
+                source_run_id=res.run_id,
+                source_job_name=res.job_name,
+                title=f"Job Completed with Reviews: {res.job_name}",
+                summary=f"{res.review_count + res.review_required_count} items need review.",
+                severity="info",
+                priority="normal",
+                review_required_flag=True,
+                seller_account_id=context.seller_account_id
+            )
+            self.notification_dispatcher.notify(event, dry_run=dry_run)
 
     def _dispatch_call(self, runner: Any, job_def: JobDefinition, context: JobExecutionContext) -> Any:
         # Map runner names to methods
@@ -165,5 +209,8 @@ class SchedulerEngine:
         if context.limit: kwargs["limit"] = context.limit
         kwargs["dry_run"] = context.dry_run
         kwargs["scheduler_run_id"] = context.scheduler_run_id
+        kwargs["seller_account_id"] = context.seller_account_id
+        kwargs["environment_type"] = context.environment_type
+        kwargs["marketplace_id"] = context.marketplace_id
         
         return method(**kwargs)

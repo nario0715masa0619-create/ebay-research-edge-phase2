@@ -49,17 +49,30 @@ class EbayInventoryApiClient(EbayBaseApiClient):
             dry_run=dry_run
         )
 
-    def bulk_update_price_quantity(self, sku: str, offer_id: str, price: Optional[float], quantity: Optional[int], dry_run: bool = False) -> Dict[str, Any]:
-        # Note: In real API, this might be a bulk endpoint, but here we wrap for specific item
-        payload = {
-            "requests": [
-                {
-                    "offerId": offer_id,
-                    "price": {"value": str(price), "currency": "USD"} if price else None,
-                    "availableQuantity": quantity
-                }
-            ]
-        }
+    def bulk_update_price_quantity(self, *args, **kwargs) -> Dict[str, Any]:
+        if args and isinstance(args[0], dict):
+            payload = args[0]
+            dry_run = args[1] if len(args) > 1 else kwargs.get("dry_run", False)
+        elif "payload" in kwargs:
+            payload = kwargs["payload"]
+            dry_run = kwargs.get("dry_run", False)
+        else:
+            sku = args[0] if len(args) > 0 else kwargs.get("sku")
+            offer_id = args[1] if len(args) > 1 else kwargs.get("offer_id")
+            price = args[2] if len(args) > 2 else kwargs.get("price")
+            quantity = args[3] if len(args) > 3 else kwargs.get("quantity")
+            dry_run = args[4] if len(args) > 4 else kwargs.get("dry_run", False)
+            
+            payload = {
+                "requests": [
+                    {
+                        "offerId": offer_id,
+                        "price": {"value": str(price), "currency": "USD"} if price else None,
+                        "availableQuantity": quantity
+                    }
+                ]
+            }
+
         return self.execute_with_auth(
             operation_key="inventory.bulk_update_price_quantity",
             http_method="POST",
@@ -100,11 +113,4 @@ class EbayInventoryApiClient(EbayBaseApiClient):
             dry_run=dry_run
         )
 
-    def bulk_update_price_quantity(self, payload: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
-        return self.execute_with_auth(
-            operation_key="inventory.bulk_update_price_quantity",
-            http_method="POST",
-            path="/sell/inventory/v1/bulk_update_price_quantity",
-            payload=payload,
-            dry_run=dry_run
-        )
+    # Duplicate method bulk_update_price_quantity removed; unified implementation is above.

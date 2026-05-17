@@ -178,6 +178,17 @@ def test_job_run_append_progress(repos):
     assert saved.excluded_count == 1
 
 def test_listed_status_protection(repos):
+    # Insert referenced SourceItem first to satisfy foreign key constraint
+    item = SourceItem(
+        source_item_id="SRC-P01",
+        source_platform="mercari",
+        source_url="http://test.com/p1",
+        source_title="Protected Item Source",
+        source_price_jpy=1000.0
+    )
+    repos["source_item"].upsert(item)
+    repos["session"].commit()
+
     repo = repos["candidate"]
     c = ProductCandidate(
         candidate_id="CAND-P01",
