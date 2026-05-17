@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Sellers Configuration{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="active">Sellers</li>
+{% endblock %}
+
+{% block content %}
+<div class="glass-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-family: var(--font-heading); font-size: 18px; font-weight: 600;">👥 Registered Seller Accounts</h2>
+    </div>
+
+    <div class="table-container">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Seller Label</th>
+                    <th>Account ID</th>
+                    <th>Env Mode</th>
+                    <th>Default Marketplace</th>
+                    <th>Policies</th>
+                    <th>Locations</th>
+                    <th>Active Bindings</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if sellers %}
+                    {% for s in sellers %}
+                    <tr>
+                        <td>
+                            <a href="/admin/sellers/{{ s.seller_account_id }}{{ merge_query_params(request) }}" style="color: var(--color-cyan); font-weight: 600;">
+                                {{ s.seller_label }}
+                            </a>
+                        </td>
+                        <td style="font-family: monospace;">{{ s.seller_account_id }}</td>
+                        <td>
+                            <span class="badge {% if s.environment_mode == 'production' %}badge-success{% else %}badge-info{% endif %}">
+                                {{ s.environment_mode }}
+                            </span>
+                        </td>
+                        <td>{{ s.default_marketplace_id }}</td>
+                        <td>
+                            {% if s.has_policy_setup %}
+                                <span style="color: var(--color-success);">✔️ Configured</span>
+                            {% else %}
+                                <span style="color: var(--text-muted);">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.has_location_setup %}
+                                <span style="color: var(--color-success);">✔️ Configured</span>
+                            {% else %}
+                                <span style="color: var(--text-muted);">None</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge badge-info">{{ s.active_bindings_count }}</span></td>
+                        <td>
+                            <span class="badge {% if s.enabled %}badge-success{% else %}badge-error{% endif %}">
+                                {% if s.enabled %}Active{% else %}Disabled{% endif %}
+                            </span>
+                        </td>
+                        <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                            <a href="/admin/sellers/{{ s.seller_account_id }}{{ merge_query_params(request) }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">
+                                🔍 Details
+                            </a>
+                            <form action="/admin/sellers/activate" method="POST">
+                                <input type="hidden" name="seller_account_id" value="{{ s.seller_account_id }}">
+                                <input type="hidden" name="environment_type" value="{{ s.environment_mode }}">
+                                <button type="submit" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;" {% if not s.enabled or read_only_mode %}disabled{% endif %}>
+                                    ⚡ Switch Context
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--text-muted);">No sellers configured.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Job Run Details{% endblock %}
+
+{% block breadcrumb_items %}
+<li><a href="/admin/jobs{{ merge_query_params(request) }}">Jobs</a></li>
+<li class="active">Run Details</li>
+{% endblock %}
+
+{% block content %}
+<div class="details-grid">
+    <!-- Left Column: Metrics and duration -->
+    <div class="detail-section">
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>📋 Run Identification</span>
+                <span class="badge {{ badge_class_job(run.status) }}">{{ run.status }}</span>
+            </h2>
+
+            <div class="info-row">
+                <span class="label">Job Name</span>
+                <span class="value" style="font-weight: 600; color: var(--color-cyan);">{{ run.job_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Run ID</span>
+                <span class="value" style="font-family: monospace;">{{ run.run_id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Seller Profile</span>
+                <span class="value" style="font-family: monospace;">{{ run.seller_account_id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Environment</span>
+                <span class="value">{{ run.environment_type.upper() }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Started At</span>
+                <span class="value" style="font-family: monospace;">{{ run.started_at }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Finished At</span>
+                <span class="value" style="font-family: monospace;">{{ run.finished_at or 'Running...' }}</span>
+            </div>
+        </div>
+
+        <!-- Failure Summary if present -->
+        {% if run.failure_reason %}
+        <div class="glass-panel" style="border-left: 4px solid var(--color-error);">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--color-error); margin-bottom: 10px;">🚨 Execution Failure Log</h3>
+            <pre style="background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: var(--color-error);">{{ run.failure_reason }}</pre>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Processed Counts -->
+    <div class="detail-section">
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 12px;">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">📦 Processing Performance</h3>
+            
+            <div class="info-row">
+                <span class="label">Processed Items</span>
+                <span class="value" style="font-weight: bold; font-size: 16px;">{{ run.processed_items_count }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Success Count</span>
+                <span class="value" style="color: var(--color-success); font-weight: bold;">{{ run.success_count }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Skipped Items</span>
+                <span class="value" style="color: var(--text-secondary);">{{ run.skipped_count }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Retryable Errors</span>
+                <span class="value" style="color: var(--color-warning);">{{ run.retryable_errors_count }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Fatal Failures</span>
+                <span class="value" style="color: var(--color-error); font-weight: bold;">{{ run.fatal_errors_count }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

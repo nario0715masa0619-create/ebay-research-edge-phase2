@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Product Candidates Management{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="active">Candidates</li>
+{% endblock %}
+
+{% block content %}
+<!-- Search Filters Panel -->
+<div class="glass-panel" style="margin-bottom: 25px;">
+    <form method="GET" class="filter-bar">
+        <!-- Preserve context keys -->
+        <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+        <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+        
+        <div>
+            <label style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-right: 5px;">Search Sku / Title</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="e.g. SKU-12345" class="filter-input">
+        </div>
+        
+        <div>
+            <label style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-right: 5px;">Status</label>
+            <select name="status" class="filter-input">
+                <option value="">-- All Statuses --</option>
+                <option value="collected" {% if status == 'collected' %}selected{% endif %}>Collected</option>
+                <option value="listing_in_progress" {% if status == 'listing_in_progress' %}selected{% endif %}>Listing In Progress</option>
+                <option value="listed" {% if status == 'listed' %}selected{% endif %}>Listed</option>
+                <option value="failed" {% if status == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="withdrawn" {% if status == 'withdrawn' %}selected{% endif %}>Withdrawn</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="padding: 8px 16px;">🔍 Filter Candidates</button>
+        <a href="/admin/candidates?seller_account_id={{ active_context.seller_account_id }}&environment_type={{ active_context.environment_type }}" class="btn btn-secondary" style="padding: 8px 16px;">Reset</a>
+    </form>
+</div>
+
+<!-- Main Candidates Table -->
+<div class="glass-panel">
+    <div class="table-container">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Product Title</th>
+                    <th>Status</th>
+                    <th>Readiness</th>
+                    <th>Score</th>
+                    <th>Expected Profit</th>
+                    <th>Decision Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if candidates %}
+                    {% for c in candidates %}
+                    <tr>
+                        <td>
+                            <a href="/admin/candidates/{{ c.sku }}{{ merge_query_params(request) }}" style="color: var(--color-cyan); font-family: monospace; font-weight: 600;">
+                                {{ c.sku }}
+                            </a>
+                        </td>
+                        <td style="max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ c.title }}</td>
+                        <td>
+                            <span class="badge {{ badge_class_candidate(c.status) }}">{{ c.status }}</span>
+                        </td>
+                        <td>
+                            <span class="badge {{ badge_class_readiness(c.listing_readiness_status) }}">{{ c.listing_readiness_status }}</span>
+                        </td>
+                        <td style="font-weight: 600;">{{ c.standard_score or 0.0 }}</td>
+                        <td style="color: var(--color-success); font-weight: 600;">¥{{ "{:,}".format(c.expected_profit_jpy | int) }}</td>
+                        <td><code>{{ c.decision_type or 'AUTO_PUBLISH' }}</code></td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted);">No product candidates found matching these filters.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Helper -->
+    {% if paginator.total_pages > 1 %}
+    <div class="pagination">
+        <span>Showing {{ paginator.start_index }} - {{ paginator.end_index }} of {{ paginator.total_items }} items</span>
+        <div class="pagination-pages">
+            {% if paginator.has_previous %}
+                <a href="{{ paginator.page_url(paginator.page - 1) }}" class="pagination-btn">&laquo; Prev</a>
+            {% endif %}
+            
+            {% for p in paginator.get_visible_pages() %}
+                <a href="{{ paginator.page_url(p) }}" class="pagination-btn {% if p == paginator.page %}active{% endif %}">{{ p }}</a>
+            {% endfor %}
+            
+            {% if paginator.has_next %}
+                <a href="{{ paginator.page_url(paginator.page + 1) }}" class="pagination-btn">Next &raquo;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

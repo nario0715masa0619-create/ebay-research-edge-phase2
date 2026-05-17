@@ -69,6 +69,24 @@ class PersistentProductCandidateRepository:
         results = self.session.execute(stmt).scalars().all()
         return [self._to_domain(r) for r in results]
 
+    def list_all(self, limit: Optional[int] = None) -> List[ProductCandidate]:
+        stmt = select(ProductCandidateModel)
+        if limit:
+            stmt = stmt.limit(limit)
+        results = self.session.execute(stmt).scalars().all()
+        return [self._to_domain(r) for r in results]
+
+    def list_review_required(self, limit: Optional[int] = None) -> List[ProductCandidate]:
+        # Under review or failed
+        stmt = select(ProductCandidateModel).where(
+            (ProductCandidateModel.status == "failed") |
+            (ProductCandidateModel.listing_readiness_status == "blocked")
+        )
+        if limit:
+            stmt = stmt.limit(limit)
+        results = self.session.execute(stmt).scalars().all()
+        return [self._to_domain(r) for r in results]
+
     def _to_model(self, candidate: ProductCandidate) -> ProductCandidateModel:
         return ProductCandidateModel(**self._to_dict(candidate))
 
@@ -112,7 +130,10 @@ class PersistentProductCandidateRepository:
             "review_reason": candidate.review_reason,
             "decision_reason_codes_json": candidate.decision_reason_codes,
             "last_rule_version": candidate.last_rule_version,
-            "last_checked_at": candidate.last_checked_at
+            "last_checked_at": candidate.last_checked_at,
+            "seller_account_id": candidate.seller_account_id,
+            "environment_type": candidate.environment_type,
+            "marketplace_id": candidate.marketplace_id
         }
 
     def _to_domain(self, model: ProductCandidateModel) -> ProductCandidate:
@@ -157,5 +178,8 @@ class PersistentProductCandidateRepository:
             last_rule_version=model.last_rule_version,
             created_at=model.created_at,
             updated_at=model.updated_at,
-            last_checked_at=model.last_checked_at
+            last_checked_at=model.last_checked_at,
+            seller_account_id=model.seller_account_id,
+            environment_type=model.environment_type,
+            marketplace_id=model.marketplace_id
         )

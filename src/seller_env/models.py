@@ -85,6 +85,16 @@ class SellerPolicySnapshot:
     payload: Dict[str, Any] = field(default_factory=dict)
     fetched_at: datetime = field(default_factory=datetime.now)
 
+    @property
+    def policy_type(self) -> str:
+        if self.fulfillment_policy_id:
+            return "Fulfillment"
+        elif self.payment_policy_id:
+            return "Payment"
+        elif self.return_policy_id:
+            return "Return"
+        return "Unknown"
+
 @dataclass
 class SellerLocationSnapshot:
     snapshot_id: str

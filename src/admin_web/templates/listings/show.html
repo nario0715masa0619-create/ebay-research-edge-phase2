@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}{{ listing.sku }} Listing Profile{% endblock %}
+
+{% block breadcrumb_items %}
+<li><a href="/admin/listings{{ merge_query_params(request) }}">Listings</a></li>
+<li class="active">Listing Profile</li>
+{% endblock %}
+
+{% block content %}
+<div class="details-grid">
+    <!-- Left Column: Settings and Drift summary -->
+    <div class="detail-section">
+        <!-- Main Core Card -->
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>📋 Active Listing Parameters</span>
+                <span class="badge {{ badge_class_candidate(listing.listing_status) }}">{{ listing.listing_status }}</span>
+            </h2>
+
+            <div class="info-row">
+                <span class="label">SKU ID</span>
+                <span class="value" style="font-family: monospace;">{{ listing.sku }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Ebay Item ID</span>
+                <span class="value" style="font-family: monospace; color: var(--color-cyan);">{{ listing.ebay_item_id or 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Ebay Offer ID</span>
+                <span class="value" style="font-family: monospace;">{{ listing.ebay_offer_id or 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Price</span>
+                <span class="value" style="font-weight: bold; font-size: 16px;">${{ "{:.2f}".format(listing.price or 0.0) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Quantity In Stock</span>
+                <span class="value" style="font-weight: bold;">{{ listing.quantity }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Last Synced Date</span>
+                <span class="value" style="font-family: monospace;">{{ listing.last_synced_at or 'Never' }}</span>
+            </div>
+        </div>
+
+        <!-- Local vs Remote database Drift summary -->
+        <div class="glass-panel">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 15px;">⚖️ Database Price & Stock Drift</h3>
+            
+            {% if candidate %}
+                <div class="info-row">
+                    <span class="label">Expected Standard Price</span>
+                    <span class="value">${{ "{:.2f}".format(listing.price or 0.0) }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Listing Status Matching</span>
+                    <span class="value">
+                        {% if listing.listing_status == candidate.status %}
+                            <span style="color: var(--color-success); font-weight: 600;">✔️ In Sync</span>
+                        {% else %}
+                            <span class="badge badge-warning">⚠️ Drifted</span>
+                        {% endif %}
+                    </span>
+                </div>
+            {% else %}
+                <span style="font-size: 12px; color: var(--text-muted);">No candidate research profile matches locally to inspect drift details.</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Interactive Actions -->
+    <div class="detail-section">
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 15px;">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">⚡ Manual Mutations</h3>
+            
+            <!-- Sync action -->
+            <div>
+                <form action="/admin/listings/{{ listing.sku }}/sync" method="POST" data-confirm="Are you sure you want to force price/stock synchronization with eBay?">
+                    <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                    <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" {% if read_only_mode %}disabled{% endif %}>
+                        🔄 Force Re-Sync to eBay
+                    </button>
+                </form>
+            </div>
+
+            <!-- Recover action -->
+            <div>
+                <form action="/admin/listings/{{ listing.sku }}/recover" method="POST" data-confirm="Are you sure you want to trigger inventory offer recovery for this item?">
+                    <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                    <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                    <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center;" {% if read_only_mode %}disabled{% endif %}>
+                        🩺 Recover / Relist Offer
+                    </button>
+                </form>
+            </div>
+
+            <!-- Withdraw action -->
+            <div style="border-top: 1px solid var(--glass-border); padding-top: 15px;">
+                <form action="/admin/listings/{{ listing.sku }}/withdraw" method="POST" data-confirm="⚠️ CRITICAL ACTION: Are you absolutely sure you want to withdraw and end this active listing on eBay?">
+                    <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                    <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                    <button type="submit" class="btn btn-secondary" style="width: 100%; justify-content: center; background: rgba(255, 23, 68, 0.1); border-color: rgba(255, 23, 68, 0.2); color: var(--color-error);" {% if read_only_mode %}disabled{% endif %}>
+                        🚫 End & Withdraw Listing
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

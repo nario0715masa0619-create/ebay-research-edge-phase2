@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="eBay Research Edge Phase 2 Administrative Panel">
+    <title>{% block title %}{{ title }}{% endblock %}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+</head>
+<body>
+    <div class="layout-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span style="font-size: 24px;">☄️</span> Research Edge
+            </div>
+            <ul class="nav-links">
+                <li class="{% if request.url.path == '/admin' or request.url.path == '/admin/dashboard' %}active{% endif %}">
+                    <a href="/admin/dashboard{{ merge_query_params(request) }}">📋 Dashboard</a>
+                </li>
+                <li class="{% if '/admin/sellers' in request.url.path %}active{% endif %}">
+                    <a href="/admin/sellers{{ merge_query_params(request) }}">👥 Sellers</a>
+                </li>
+                <li class="{% if '/admin/jobs' in request.url.path or '/admin/jobruns' in request.url.path %}active{% endif %}">
+                    <a href="/admin/jobs{{ merge_query_params(request) }}">⚙️ Jobs</a>
+                </li>
+                <li class="{% if '/admin/candidates' in request.url.path %}active{% endif %}">
+                    <a href="/admin/candidates{{ merge_query_params(request) }}">💎 Candidates</a>
+                </li>
+                <li class="{% if '/admin/listings' in request.url.path %}active{% endif %}">
+                    <a href="/admin/listings{{ merge_query_params(request) }}">📦 Listings</a>
+                </li>
+                <li class="{% if '/admin/review' in request.url.path %}active{% endif %}">
+                    <a href="/admin/review{{ merge_query_params(request) }}">⚖️ Review Queue</a>
+                </li>
+                <li class="{% if '/admin/notifications' in request.url.path %}active{% endif %}">
+                    <a href="/admin/notifications{{ merge_query_params(request) }}">🔔 Notifications</a>
+                </li>
+                <li class="{% if '/admin/doctor' in request.url.path %}active{% endif %}">
+                    <a href="/admin/doctor{{ merge_query_params(request) }}">🩺 Doctor</a>
+                </li>
+            </ul>
+            
+            <!-- Read-only Alert inside Sidebar -->
+            {% if read_only_mode %}
+            <div class="glass-panel" style="padding: 10px; font-size: 11px; border-color: var(--color-warning-glow); background: rgba(255, 179, 0, 0.05); margin-top: auto;">
+                ⚠️ <strong>READ-ONLY MODE</strong><br>
+                Write actions are disabled.
+            </div>
+            {% endif %}
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Header with Active Context Info -->
+            <header class="page-header">
+                <div>
+                    <ul class="breadcrumbs">
+                        <li><a href="/admin/dashboard{{ merge_query_params(request) }}">Home</a></li>
+                        {% block breadcrumb_items %}{% endblock %}
+                    </ul>
+                    <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
+
+                <!-- Floating Context Dropdowns -->
+                <div class="context-navbar">
+                    <div>
+                        👤 <label for="context-seller-select" style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary);">Seller</label>
+                        <select id="context-seller-select" class="filter-input" style="padding: 2px 6px; font-size: 12px; margin-left: 5px;">
+                            {% for s in all_sellers %}
+                            <option value="{{ s.seller_account_id }}" {% if s.seller_account_id == active_context.seller_account_id %}selected{% endif %}>
+                                {{ s.seller_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="border-left: 1px solid var(--glass-border); padding-left: 15px;">
+                        🌐 <label for="context-env-select" style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary);">Env</label>
+                        <select id="context-env-select" class="filter-input" style="padding: 2px 6px; font-size: 12px; margin-left: 5px;">
+                            {% for env in all_envs %}
+                            <option value="{{ env.environment_type }}" {% if env.environment_type == active_context.environment_type %}selected{% endif %}>
+                                {{ env.environment_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="border-left: 1px solid var(--glass-border); padding-left: 15px; font-size: 12px;">
+                        🎯 <span class="badge badge-info" style="margin-left: 5px;">{{ active_context.marketplace_id }}</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Flash Session Alerts -->
+            {% if flash_messages %}
+            <div class="flash-container">
+                {% for msg in flash_messages %}
+                <div class="flash-message flash-{{ msg.category }}">
+                    <span>💬 {{ msg.message }}</span>
+                    <button class="flash-dismiss">&times;</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Dynamic Content -->
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

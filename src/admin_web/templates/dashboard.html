@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Dashboard Summary{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<!-- Metrics Stats Grid -->
+<div class="stats-grid">
+    <div class="glass-panel stat-card" style="border-left: 4px solid var(--color-error);">
+        <span class="stat-label">🚨 Failed Job Runs</span>
+        <span class="stat-value" style="color: var(--color-error);">{{ failed_jobs_count }}</span>
+    </div>
+    
+    <div class="glass-panel stat-card" style="border-left: 4px solid var(--color-warning);">
+        <span class="stat-label">⚖️ Review Queue</span>
+        <span class="stat-value" style="color: var(--color-warning);">{{ review_queue_count }}</span>
+    </div>
+
+    <div class="glass-panel stat-card" style="border-left: 4px solid var(--color-cyan);">
+        <span class="stat-label">🔔 Recent Notifications</span>
+        <span class="stat-value" style="color: var(--color-cyan);">{{ recent_notifications_count }}</span>
+    </div>
+
+    <div class="glass-panel stat-card" style="border-left: 4px solid var(--color-success);">
+        <span class="stat-label">📦 Listing Drifts</span>
+        <span class="stat-value" style="color: var(--color-success);">{{ recent_drifts_count }}</span>
+    </div>
+</div>
+
+<!-- Main Split Container -->
+<div class="details-grid">
+    <!-- Left Column: Recent Job Runs -->
+    <div class="detail-section">
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>⏱️ Recent Job Runs</span>
+                <a href="/admin/jobs{{ merge_query_params(request) }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">View All</a>
+            </h2>
+            
+            <div class="table-container">
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th>Run ID</th>
+                            <th>Job Name</th>
+                            <th>Status</th>
+                            <th>Started At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_jobruns %}
+                            {% for run in recent_jobruns %}
+                            <tr>
+                                <td><a href="/admin/jobruns/{{ run.run_id }}{{ merge_query_params(request) }}" style="color: var(--color-cyan); font-weight: 600;">{{ run.run_id[:8] }}...</a></td>
+                                <td>{{ run.job_name }}</td>
+                                <td>
+                                    <span class="badge {{ badge_class_job(run.status) }}">{{ run.status }}</span>
+                                </td>
+                                <td style="font-size: 12px; color: var(--text-secondary);">{{ run.started_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--text-muted);">No job runs executed yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Notification Logs -->
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>🔔 Recent Notifications</span>
+                <a href="/admin/notifications{{ merge_query_params(request) }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">View All</a>
+            </h2>
+
+            <div class="table-container">
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Event Type</th>
+                            <th>Channel</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_notifications %}
+                            {% for n in recent_notifications %}
+                            <tr>
+                                <td>
+                                    <span class="badge {{ badge_class_notification(n.severity) }}">{{ n.severity }}</span>
+                                </td>
+                                <td><a href="/admin/notifications/{{ n.id }}{{ merge_query_params(request) }}" style="color: var(--color-cyan);">{{ n.event_type }}</a></td>
+                                <td>{{ n.channel_name }}</td>
+                                <td>{{ n.dispatch_status }}</td>
+                                <td style="font-size: 12px; color: var(--text-secondary);">{{ n.created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">No notifications dispatched yet.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Quick Operations Sidebar -->
+    <div class="detail-section">
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 15px;">
+            <h2 style="font-family: var(--font-heading); font-size: 18px; font-weight: 600;">⚡ Quick Operations</h2>
+            
+            <div style="border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">
+                <h4 style="font-size: 12px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Scheduler Control</h4>
+                <form action="/admin/scheduler/run-once" method="POST" data-confirm="Are you sure you want to trigger scheduler run-once immediately?">
+                    <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                    <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" {% if read_only_mode %}disabled{% endif %}>
+                        ⚙️ Trigger Run Once
+                    </button>
+                </form>
+            </div>
+
+            <div>
+                <h4 style="font-size: 12px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Health Diagnostics</h4>
+                <a href="/admin/doctor{{ merge_query_params(request) }}" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+                    🩺 Run Doctor Consistency Check
+                </a>
+            </div>
+        </div>
+
+        <!-- Connection Summary panel -->
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 10px;">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Active Context Connection</h3>
+            <div class="info-row">
+                <span class="label">Seller Label</span>
+                <span class="value" style="color: var(--color-cyan); font-weight: 600;">{{ active_context.seller_label }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Environment</span>
+                <span class="value">{{ active_context.environment_type.upper() }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Marketplace</span>
+                <span class="value">{{ active_context.marketplace_id }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

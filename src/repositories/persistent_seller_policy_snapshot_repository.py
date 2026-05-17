@@ -33,6 +33,13 @@ class PersistentSellerPolicySnapshotRepository:
         if not model: return None
         return self._to_domain(model)
 
+    def get_latest_for_seller(self, seller_account_id: str) -> List[SellerPolicySnapshot]:
+        stmt = select(SellerPolicySnapshotModel).where(
+            SellerPolicySnapshotModel.seller_account_id == seller_account_id
+        ).order_by(SellerPolicySnapshotModel.fetched_at.desc())
+        results = self.session.execute(stmt).scalars().all()
+        return [self._to_domain(r) for r in results]
+
     def _to_domain(self, model: SellerPolicySnapshotModel) -> SellerPolicySnapshot:
         return SellerPolicySnapshot(
             snapshot_id=model.snapshot_id,

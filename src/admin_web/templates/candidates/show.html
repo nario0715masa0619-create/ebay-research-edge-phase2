@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}{{ candidate.sku }} Candidate Profile{% endblock %}
+
+{% block breadcrumb_items %}
+<li><a href="/admin/candidates{{ merge_query_params(request) }}">Candidates</a></li>
+<li class="active">Sku Profile</li>
+{% endblock %}
+
+{% block content %}
+<div class="details-grid">
+    <!-- Left Column: Product Details & Metrics -->
+    <div class="detail-section">
+        <!-- Main Core Card -->
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>📋 Product Specifications</span>
+                <span class="badge {{ badge_class_candidate(candidate.status) }}">{{ candidate.status }}</span>
+            </h2>
+
+            <div class="info-row">
+                <span class="label">Product Title</span>
+                <span class="value" style="font-weight: 600;">{{ candidate.title }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">SKU ID</span>
+                <span class="value" style="font-family: monospace;">{{ candidate.sku }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Readiness Status</span>
+                <span class="value">
+                    <span class="badge {{ badge_class_readiness(candidate.listing_readiness_status) }}">{{ candidate.listing_readiness_status }}</span>
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="label">Source Platform</span>
+                <span class="value">{{ candidate.source_platform or 'Yahoo! Flea Market' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Expected Profit JPY</span>
+                <span class="value" style="color: var(--color-success); font-weight: bold; font-size: 16px;">¥{{ "{:,}".format(candidate.expected_profit_jpy | int) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Standard Evaluator Score</span>
+                <span class="value" style="font-weight: bold;">{{ candidate.standard_score or 0.0 }}</span>
+            </div>
+        </div>
+
+        <!-- Blocker Reasons Panel -->
+        <div class="glass-panel" style="border-left: 4px solid var(--color-warning);">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--color-warning); margin-bottom: 10px;">🛡️ Listing Blockers & Warnings</h3>
+            {% if candidate.blocker_reasons %}
+                <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px;">
+                    {% for b in candidate.blocker_reasons %}
+                    <li style="background: rgba(255, 179, 0, 0.05); border: 1px solid var(--color-warning-glow); padding: 10px; border-radius: 6px; font-size: 13px; color: var(--color-warning);">
+                        ⚠️ <strong>Blocker ID:</strong> {{ b }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <span style="color: var(--color-success); font-weight: 500;">✔️ Clean Profile: No active blockers detected for listings.</span>
+            {% endif %}
+        </div>
+
+        <!-- Evidence History adapter list -->
+        <div class="glass-panel">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 15px;">🔬 Scraped Research Evidences</h3>
+            <div class="table-container">
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th>Evidence ID</th>
+                            <th>Market Url</th>
+                            <th>Flea Market Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if evidence_list %}
+                            {% for e in evidence_list %}
+                            <tr>
+                                <td style="font-family: monospace;">{{ e.evidence_id[:12] }}...</td>
+                                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    <a href="{{ e.source_url }}" target="_blank" style="color: var(--color-cyan);">{{ e.source_url }}</a>
+                                </td>
+                                <td style="font-weight: 600;">¥{{ "{:,}".format(e.flea_market_price | int) if e.flea_market_price else 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: var(--text-muted);">No evidence logs archived.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Status Summary & Active Links -->
+    <div class="detail-section">
+        <!-- Decision engine settings -->
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 10px;">
+            <h3 style="font-family: var(--font-heading); font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">⚙️ Decision Summary</h3>
+            <div class="info-row">
+                <span class="label">Decision Type</span>
+                <span class="value"><code>{{ candidate.decision_type or 'AUTO_PUBLISH' }}</code></span>
+            </div>
+            <div class="info-row">
+                <span class="label">Requires Review</span>
+                <span class="value">
+                    <span class="badge {% if candidate.status == 'failed' %}badge-error{% else %}badge-secondary{% endif %}">
+                        {% if candidate.status == 'failed' %}YES{% else %}NO{% endif %}
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        <!-- Related Listings links -->
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 10px;">
+            <h3 style="font-family: var(--font-heading); font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">📦 Associated Remote Listings</h3>
+            {% if listing %}
+                <div class="info-row">
+                    <span class="label">Listing Status</span>
+                    <span class="value"><span class="badge {{ badge_class_candidate(listing.listing_status) }}">{{ listing.listing_status }}</span></span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Offer Status</span>
+                    <span class="value"><span class="badge badge-info">{{ listing.offer_status }}</span></span>
+                </div>
+                <a href="/admin/listings/{{ candidate.sku }}{{ merge_query_params(request) }}" class="btn btn-primary" style="justify-content: center; margin-top: 10px;">
+                    🔍 Inspect Active Listing
+                </a>
+            {% else %}
+                <span style="font-size: 12px; color: var(--text-muted);">No active remote listings matched.</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

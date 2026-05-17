@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Active Listings Management{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="active">Listings</li>
+{% endblock %}
+
+{% block content %}
+<!-- Search Filters Panel -->
+<div class="glass-panel" style="margin-bottom: 25px;">
+    <form method="GET" class="filter-bar">
+        <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+        <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+        
+        <div>
+            <label style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-right: 5px;">Search SKU</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="e.g. SKU-12345" class="filter-input">
+        </div>
+        
+        <div>
+            <label style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-right: 5px;">Listing Status</label>
+            <select name="status" class="filter-input">
+                <option value="">-- All Statuses --</option>
+                <option value="listed" {% if status == 'listed' %}selected{% endif %}>Listed</option>
+                <option value="failed" {% if status == 'failed' %}selected{% endif %}>Failed</option>
+                <option value="withdrawn" {% if status == 'withdrawn' %}selected{% endif %}>Withdrawn</option>
+                <option value="drifted" {% if status == 'drifted' %}selected{% endif %}>Drifted</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="padding: 8px 16px;">🔍 Filter Listings</button>
+        <a href="/admin/listings?seller_account_id={{ active_context.seller_account_id }}&environment_type={{ active_context.environment_type }}" class="btn btn-secondary" style="padding: 8px 16px;">Reset</a>
+    </form>
+</div>
+
+<!-- Main Listings Table -->
+<div class="glass-panel">
+    <div class="table-container">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Ebay Item ID</th>
+                    <th>Listing Status</th>
+                    <th>Offer Status</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Last Synced</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if listings %}
+                    {% for l in listings %}
+                    <tr>
+                        <td>
+                            <a href="/admin/listings/{{ l.sku }}{{ merge_query_params(request) }}" style="color: var(--color-cyan); font-family: monospace; font-weight: 600;">
+                                {{ l.sku }}
+                            </a>
+                        </td>
+                        <td style="font-family: monospace;">{{ l.ebay_item_id or 'N/A' }}</td>
+                        <td>
+                            <span class="badge {{ badge_class_candidate(l.listing_status) }}">{{ l.listing_status }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-info">{{ l.offer_status }}</span>
+                        </td>
+                        <td style="font-weight: 600;">${{ "{:.2f}".format(l.price or 0.0) }}</td>
+                        <td>{{ l.quantity }}</td>
+                        <td style="font-size: 12px; color: var(--text-secondary);">{{ l.last_synced_at or 'Never' }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted);">No active listings found matching these filters.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Helper -->
+    {% if paginator.total_pages > 1 %}
+    <div class="pagination">
+        <span>Showing {{ paginator.start_index }} - {{ paginator.end_index }} of {{ paginator.total_items }} items</span>
+        <div class="pagination-pages">
+            {% if paginator.has_previous %}
+                <a href="{{ paginator.page_url(paginator.page - 1) }}" class="pagination-btn">&laquo; Prev</a>
+            {% endif %}
+            
+            {% for p in paginator.get_visible_pages() %}
+                <a href="{{ paginator.page_url(p) }}" class="pagination-btn {% if p == paginator.page %}active{% endif %}">{{ p }}</a>
+            {% endfor %}
+            
+            {% if paginator.has_next %}
+                <a href="{{ paginator.page_url(paginator.page + 1) }}" class="pagination-btn">Next &raquo;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

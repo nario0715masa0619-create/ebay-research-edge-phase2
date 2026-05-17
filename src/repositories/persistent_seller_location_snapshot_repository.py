@@ -30,6 +30,13 @@ class PersistentSellerLocationSnapshotRepository:
         if not model: return None
         return self._to_domain(model)
 
+    def get_latest_for_seller(self, seller_account_id: str) -> List[SellerLocationSnapshot]:
+        stmt = select(SellerLocationSnapshotModel).where(
+            SellerLocationSnapshotModel.seller_account_id == seller_account_id
+        ).order_by(SellerLocationSnapshotModel.fetched_at.desc())
+        results = self.session.execute(stmt).scalars().all()
+        return [self._to_domain(r) for r in results]
+
     def _to_domain(self, model: SellerLocationSnapshotModel) -> SellerLocationSnapshot:
         return SellerLocationSnapshot(
             snapshot_id=model.snapshot_id,

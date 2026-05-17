@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Orchestrator Pipelines & Job Runs{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="active">Jobs</li>
+{% endblock %}
+
+{% block content %}
+<!-- Top Row: Registered Pipelines -->
+<div class="glass-panel" style="margin-bottom: 30px;">
+    <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600;">⚙️ Registered Job Pipelines</h2>
+    
+    <div class="table-container">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Job Name</th>
+                    <th>Schedule Type</th>
+                    <th>Last Status</th>
+                    <th>Last Started</th>
+                    <th>Last Finished</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if jobs %}
+                    {% for j in jobs %}
+                    <tr>
+                        <td style="font-weight: 600; color: var(--color-cyan);">{{ j.job_name }}</td>
+                        <td><code>{{ j.schedule_type }}</code></td>
+                        <td>
+                            <span class="badge {{ badge_class_job(j.last_run_status) }}">{{ j.last_run_status }}</span>
+                        </td>
+                        <td style="font-size: 12px; color: var(--text-secondary);">{{ j.last_run_started_at or 'Never' }}</td>
+                        <td style="font-size: 12px; color: var(--text-secondary);">{{ j.last_run_finished_at or 'Never' }}</td>
+                        <td style="text-align: right;">
+                            <form action="/admin/jobs/run" method="POST" data-confirm="Are you sure you want to trigger manual execution of job '{{ j.job_name }}'?">
+                                <input type="hidden" name="job_name" value="{{ j.job_name }}">
+                                <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                                <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                                <button type="submit" class="btn btn-primary" style="padding: 4px 10px; font-size: 11px;" {% if read_only_mode %}disabled{% endif %}>
+                                    🚀 Manual Run
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted);">No pipelines registered.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bottom Row: Historical Executions -->
+<div class="glass-panel">
+    <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600;">⏱️ Execution Run History</h2>
+    
+    <div class="table-container">
+        <table class="table-glass">
+            <thead>
+                <tr>
+                    <th>Run ID</th>
+                    <th>Job Name</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Success</th>
+                    <th>Skipped</th>
+                    <th>Fatal</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if jobruns %}
+                    {% for run in jobruns %}
+                    <tr>
+                        <td>
+                            <a href="/admin/jobruns/{{ run.run_id }}{{ merge_query_params(request) }}" style="color: var(--color-cyan); font-family: monospace; font-weight: 600;">
+                                {{ run.run_id[:8] }}...
+                            </a>
+                        </td>
+                        <td>{{ run.job_name }}</td>
+                        <td>
+                            <span class="badge {{ badge_class_job(run.status) }}">{{ run.status }}</span>
+                        </td>
+                        <td>{{ run.processed_items_count }}</td>
+                        <td><span style="color: var(--color-success);">{{ run.success_count }}</span></td>
+                        <td><span style="color: var(--text-secondary);">{{ run.skipped_count }}</span></td>
+                        <td><span style="color: var(--color-error);">{{ run.fatal_errors_count }}</span></td>
+                        <td style="font-size: 12px; color: var(--text-secondary);">{{ run.started_at }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: var(--text-muted);">No job execution runs recorded.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if paginator.total_pages > 1 %}
+    <div class="pagination">
+        <span>Showing {{ paginator.start_index }} - {{ paginator.end_index }} of {{ paginator.total_items }} items</span>
+        <div class="pagination-pages">
+            {% if paginator.has_previous %}
+                <a href="{{ paginator.page_url(paginator.page - 1) }}" class="pagination-btn">&laquo; Prev</a>
+            {% endif %}
+            
+            {% for p in paginator.get_visible_pages() %}
+                <a href="{{ paginator.page_url(p) }}" class="pagination-btn {% if p == paginator.page %}active{% endif %}">{{ p }}</a>
+            {% endfor %}
+            
+            {% if paginator.has_next %}
+                <a href="{{ paginator.page_url(paginator.page + 1) }}" class="pagination-btn">Next &raquo;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}{{ seller.seller_label }} Detail{% endblock %}
+
+{% block breadcrumb_items %}
+<li><a href="/admin/sellers{{ merge_query_params(request) }}">Sellers</a></li>
+<li class="active">{{ seller.seller_label }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="details-grid">
+    <!-- Left Column: Settings and Bindings -->
+    <div class="detail-section">
+        <!-- Seller Defaults Info Card -->
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600;">📋 Account Default Settings</h2>
+            
+            <div class="info-row">
+                <span class="label">Seller Name</span>
+                <span class="value">{{ seller.seller_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Account ID</span>
+                <span class="value" style="font-family: monospace;">{{ seller.seller_account_id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Default Marketplace</span>
+                <span class="value">{{ seller.default_marketplace_id }} ({{ seller.default_currency }})</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Default Location Key</span>
+                <span class="value" style="font-family: monospace;">{{ seller.default_merchant_location_key or 'None' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Default Fulfillment Policy ID</span>
+                <span class="value" style="font-family: monospace;">{{ seller.default_fulfillment_policy_id or 'None' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Default Payment Policy ID</span>
+                <span class="value" style="font-family: monospace;">{{ seller.default_payment_policy_id or 'None' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Default Return Policy ID</span>
+                <span class="value" style="font-family: monospace;">{{ seller.default_return_policy_id or 'None' }}</span>
+            </div>
+        </div>
+
+        <!-- Bindings Table Panel -->
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600;">🌐 Environment Bindings</h2>
+            
+            <div class="table-container">
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th>Environment ID</th>
+                            <th>Active Flag</th>
+                            <th>Marketplace</th>
+                            <th>Location Key</th>
+                            <th>Token Ref</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if bindings %}
+                            {% for b in bindings %}
+                            <tr>
+                                <td style="font-family: monospace; font-weight: 600; color: var(--color-cyan);">{{ b.environment_id }}</td>
+                                <td>
+                                    <span class="badge {% if b.active_flag %}badge-success{% else %}badge-secondary{% endif %}">
+                                        {% if b.active_flag %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ b.marketplace_id }}</td>
+                                <td style="font-family: monospace;">{{ b.merchant_location_key or 'Default' }}</td>
+                                <td style="font-family: monospace; color: var(--text-muted);">
+                                    <!-- Mask token ref so it is secure -->
+                                    {% if b.refresh_token_ref %}
+                                        {{ b.refresh_token_ref[:12] }}... [MASKED]
+                                    {% else %}
+                                        None
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">No active environment bindings.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Diagnostics and Actions -->
+    <div class="detail-section">
+        <!-- Quick switches -->
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 15px;">
+            <h2 style="font-family: var(--font-heading); font-size: 18px; font-weight: 600;">⚡ Switch active context</h2>
+            <p style="font-size: 12px; color: var(--text-secondary);">Switch the administrative web context to this seller profile.</p>
+            <form action="/admin/sellers/activate" method="POST">
+                <input type="hidden" name="seller_account_id" value="{{ seller.seller_account_id }}">
+                <input type="hidden" name="environment_type" value="{{ seller.environment_mode }}">
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" {% if not seller.enabled or read_only_mode %}disabled{% endif %}>
+                    ⚡ Switch Context to {{ seller.seller_label }}
+                </button>
+            </form>
+        </div>
+
+        <!-- Policy / Location Snapshots Timeline -->
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 15px;">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">⚙️ Configuration Snapshots</h3>
+            
+            <div>
+                <h4 style="font-size: 12px; margin-bottom: 5px; color: var(--text-primary);">Policy Snapshots</h4>
+                {% if policy_snapshots %}
+                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+                        {% for p in policy_snapshots %}
+                        <li style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--glass-border); padding-bottom: 3px;">
+                            <span>{{ p.policy_type }}</span>
+                            <span style="font-family: monospace; color: var(--text-muted);">{{ p.fetched_at.strftime('%Y-%m-%d %H:%M') if p.fetched_at else '' }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <span style="font-size: 12px; color: var(--text-muted);">No policy snapshots stored.</span>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 10px;">
+                <h4 style="font-size: 12px; margin-bottom: 5px; color: var(--text-primary);">Location Snapshots</h4>
+                {% if location_snapshots %}
+                    <ul style="list-style: none; display: flex; flex-direction: column; gap: 5px; font-size: 12px;">
+                        {% for l in location_snapshots %}
+                        <li style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--glass-border); padding-bottom: 3px;">
+                            <span>{{ l.merchant_location_key }}</span>
+                            <span style="font-family: monospace; color: var(--text-muted);">{{ l.fetched_at.strftime('%Y-%m-%d %H:%M') if l.fetched_at else '' }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <span style="font-size: 12px; color: var(--text-muted);">No location snapshots stored.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Notification Details{% endblock %}
+
+{% block breadcrumb_items %}
+<li><a href="/admin/notifications{{ merge_query_params(request) }}">Notifications</a></li>
+<li class="active">Trace Log</li>
+{% endblock %}
+
+{% block content %}
+<div class="details-grid">
+    <!-- Left Column: Settings and masked payload -->
+    <div class="detail-section">
+        <!-- Core Details -->
+        <div class="glass-panel">
+            <h2 style="font-family: var(--font-heading); margin-bottom: 20px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                <span>📋 Dispatched Parameters</span>
+                <span class="badge {{ badge_class_notification(notification.severity) }}">{{ notification.severity }}</span>
+            </h2>
+
+            <div class="info-row">
+                <span class="label">Event Type</span>
+                <span class="value" style="font-weight: 600; color: var(--color-cyan);">{{ notification.event_type }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">History Log ID</span>
+                <span class="value" style="font-family: monospace;">NTFH-{{ "%04d" | format(notification.id) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Associated Sku</span>
+                <span class="value" style="font-family: monospace;">{{ notification.sku or 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Channel Dispatcher</span>
+                <span class="value">{{ notification.channel_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Provider Message ID</span>
+                <span class="value" style="font-family: monospace; font-size: 12px; color: var(--text-secondary);">{{ notification.provider_message_id or 'None' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Delivery Status</span>
+                <span class="value">{{ notification.dispatch_status }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Created Date</span>
+                <span class="value" style="font-family: monospace;">{{ notification.created_at }}</span>
+            </div>
+        </div>
+
+        <!-- Masked JSON payload box -->
+        <div class="glass-panel">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 12px;">🔒 Security Masked Event Payload</h3>
+            <pre style="background: rgba(0, 0, 0, 0.35); border: 1px solid var(--glass-border); padding: 15px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; font-size: 12px; color: var(--text-secondary); overflow-x: auto;">{{ masked_payload }}</pre>
+        </div>
+    </div>
+
+    <!-- Right Column: Operations -->
+    <div class="detail-section">
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 15px;">
+            <h3 style="font-family: var(--font-heading); font-size: 14px; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">⚡ Dispatch Actions</h3>
+            
+            <form action="/admin/notifications/{{ notification.id }}/resend" method="POST" data-confirm="Are you sure you want to resend this exact alert to the channel?">
+                <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" {% if read_only_mode %}disabled{% endif %}>
+                    🔄 Retrigger Resend Alert
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

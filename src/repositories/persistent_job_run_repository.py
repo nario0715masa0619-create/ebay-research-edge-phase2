@@ -108,5 +108,8 @@ class PersistentJobRunRepository:
             error_count=model.error_count,
             error_summary=model.error_summary,
             started_at=model.started_at,
-            finished_at=model.finished_at
+            finished_at=model.finished_at,
+            seller_account_id=model.seller_account_id,
+            environment_type=model.environment_type,
+            marketplace_id=model.marketplace_id
         )

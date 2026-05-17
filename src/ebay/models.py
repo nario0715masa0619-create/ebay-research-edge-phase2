@@ -109,6 +109,9 @@ class ProductCandidate:
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     last_checked_at: Optional[datetime] = None
+    seller_account_id: Optional[str] = None
+    environment_type: Optional[str] = None
+    marketplace_id: Optional[str] = None
 
 @dataclass
 class CandidateEvidence:
@@ -152,6 +155,9 @@ class JobRun:
     
     started_at: datetime = field(default_factory=datetime.now)
     finished_at: Optional[datetime] = None
+    seller_account_id: Optional[str] = None
+    environment_type: Optional[str] = None
+    marketplace_id: Optional[str] = None
 
 @dataclass
 class MonitoringEvent:
@@ -191,3 +197,5 @@ class EbayListing:
     
     listed_at: Optional[datetime] = None
     updated_at: datetime = field(default_factory=datetime.now)
+    seller_account_id: Optional[str] = None
+    environment_type: Optional[str] = None

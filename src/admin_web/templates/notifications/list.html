@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_title %}Dispatched Notification History{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="active">Notifications</li>
+{% endblock %}
+
+{% block content %}
+<!-- Search and Filter Bar -->
+<div class="details-grid">
+    <div class="detail-section">
+        <div class="glass-panel" style="margin-bottom: 25px;">
+            <form method="GET" class="filter-bar" style="padding: 10px;">
+                <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                
+                <div>
+                    <label style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-right: 5px;">Search Event / SKU</label>
+                    <input type="text" name="q" value="{{ q }}" placeholder="e.g. readiness_failed" class="filter-input">
+                </div>
+                
+                <div>
+                    <label style="font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-right: 5px;">Severity</label>
+                    <select name="severity" class="filter-input">
+                        <option value="">-- All --</option>
+                        <option value="info" {% if severity == 'info' %}selected{% endif %}>Info</option>
+                        <option value="warning" {% if severity == 'warning' %}selected{% endif %}>Warning</option>
+                        <option value="critical" {% if severity == 'critical' %}selected{% endif %}>Critical</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="padding: 8px 16px;">🔍 Filter Logs</button>
+            </form>
+        </div>
+
+        <!-- History Log Table -->
+        <div class="glass-panel">
+            <div class="table-container">
+                <table class="table-glass">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Event Type</th>
+                            <th>SKU</th>
+                            <th>Channel</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if notifications %}
+                            {% for n in notifications %}
+                            <tr>
+                                <td>
+                                    <span class="badge {{ badge_class_notification(n.severity) }}">{{ n.severity }}</span>
+                                </td>
+                                <td>
+                                    <a href="/admin/notifications/{{ n.id }}{{ merge_query_params(request) }}" style="color: var(--color-cyan); font-weight: 600;">
+                                        {{ n.event_type }}
+                                    </a>
+                                </td>
+                                <td>{{ n.sku or 'N/A' }}</td>
+                                <td>{{ n.channel_name }}</td>
+                                <td>{{ n.dispatch_status }}</td>
+                                <td style="font-size: 12px; color: var(--text-secondary);">{{ n.created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-muted);">No notification logs recorded matching these filters.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Helper -->
+            {% if paginator.total_pages > 1 %}
+            <div class="pagination">
+                <span>Showing {{ paginator.start_index }} - {{ paginator.end_index }} of {{ paginator.total_items }} items</span>
+                <div class="pagination-pages">
+                    {% if paginator.has_previous %}
+                        <a href="{{ paginator.page_url(paginator.page - 1) }}" class="pagination-btn">&laquo; Prev</a>
+                    {% endif %}
+                    
+                    {% for p in paginator.get_visible_pages() %}
+                        <a href="{{ paginator.page_url(p) }}" class="pagination-btn {% if p == paginator.page %}active{% endif %}">{{ p }}</a>
+                    {% endfor %}
+                    
+                    {% if paginator.has_next %}
+                        <a href="{{ paginator.page_url(paginator.page + 1) }}" class="pagination-btn">Next &raquo;</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Dispatch Test Notification Form -->
+    <div class="detail-section">
+        <div class="glass-panel" style="display: flex; flex-direction: column; gap: 15px;">
+            <h3 style="font-family: var(--font-heading); font-size: 18px; font-weight: 600;">🔔 Dispatch Channel Test</h3>
+            <p style="font-size: 12px; color: var(--text-secondary);">Send a simulated test notification event using active seller profile parameters.</p>
+            
+            <form action="/admin/notifications/test" method="POST" data-confirm="Are you sure you want to fire this channel test event?">
+                <input type="hidden" name="seller_account_id" value="{{ active_context.seller_account_id }}">
+                <input type="hidden" name="environment_type" value="{{ active_context.environment_type }}">
+                
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px;">Test Event Type</label>
+                    <select name="event_type" class="filter-input" style="width: 100%;">
+                        <option value="test_alert">test_alert</option>
+                        <option value="readiness_failed">readiness_failed</option>
+                        <option value="listing_succeeded">listing_succeeded</option>
+                        <option value="profit_drift_detected">profit_drift_detected</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px;">Severity</label>
+                    <select name="severity" class="filter-input" style="width: 100%;">
+                        <option value="info">info</option>
+                        <option value="warning">warning</option>
+                        <option value="critical">critical</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" {% if read_only_mode %}disabled{% endif %}>
+                    ⚡ Fire Test Notification
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

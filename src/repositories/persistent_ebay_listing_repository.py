@@ -49,6 +49,13 @@ class PersistentEbayListingRepository:
         results = self.session.execute(stmt).scalars().all()
         return [self._to_domain(r) for r in results]
 
+    def list_all(self, limit: Optional[int] = None) -> List[EbayListing]:
+        stmt = select(EbayListingModel)
+        if limit:
+            stmt = stmt.limit(limit)
+        results = self.session.execute(stmt).scalars().all()
+        return [self._to_domain(r) for r in results]
+
     def _to_model(self, listing: EbayListing) -> EbayListingModel:
         return EbayListingModel(**self._to_dict(listing))
 
@@ -71,7 +78,9 @@ class PersistentEbayListingRepository:
             "last_publish_attempt_at": listing.last_publish_attempt_at,
             "last_publish_error": listing.last_publish_error,
             "last_revise_error": listing.last_revise_error,
-            "listed_at": listing.listed_at
+            "listed_at": listing.listed_at,
+            "seller_account_id": listing.seller_account_id,
+            "environment_type": listing.environment_type
         }
 
     def _to_domain(self, model: EbayListingModel) -> EbayListing:
@@ -94,5 +103,7 @@ class PersistentEbayListingRepository:
             last_publish_error=model.last_publish_error,
             last_revise_error=model.last_revise_error,
             listed_at=model.listed_at,
-            updated_at=model.updated_at
+            updated_at=model.updated_at,
+            seller_account_id=model.seller_account_id,
+            environment_type=model.environment_type
         )
