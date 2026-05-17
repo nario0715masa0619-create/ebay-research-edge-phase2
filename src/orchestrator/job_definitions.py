@@ -61,5 +61,15 @@ def get_standard_job_definitions() -> list[JobDefinition]:
             interval_seconds=3600 * 24, # Daily
             target_runner_name="housekeeping_runner",
             lock_key="housekeeping"
+        ),
+        JobDefinition(
+            job_name="escalation_reminder_job",
+            job_group="system",
+            schedule_type="interval",
+            interval_seconds=300, # 5 minutes
+            target_runner_name="escalation_reminder_runner",
+            lock_key="escalation_reminder_job",
+            allow_overlap=False,
+            kwargs={"enable_re_escalation": True}
         )
     ]

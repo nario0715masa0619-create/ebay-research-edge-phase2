@@ -171,14 +171,14 @@ class SchedulerEngine:
             )
             self.notification_dispatcher.notify(event, dry_run=dry_run)
         
-        elif res.review_count > 0 or res.review_required_count > 0:
+        elif res.review_count > 0:
             event = NotificationEvent(
                 event_type="scheduled_job_completed_with_reviews",
                 source_layer="orchestrator",
                 source_run_id=res.run_id,
                 source_job_name=res.job_name,
                 title=f"Job Completed with Reviews: {res.job_name}",
-                summary=f"{res.review_count + res.review_required_count} items need review.",
+                summary=f"{res.review_count} items need review.",
                 severity="info",
                 priority="normal",
                 review_required_flag=True,
@@ -195,7 +195,8 @@ class SchedulerEngine:
             "listing_execution_runner": "run_listing_execution_gateway",
             "monitoring_revise_runner": "run_monitoring_revise_pipeline",
             "listing_sync_recovery_runner": "run_listing_sync_recovery_gateway",
-            "housekeeping_runner": "run_housekeeping"
+            "housekeeping_runner": "run_housekeeping",
+            "escalation_reminder_runner": "run_escalation_reminder_runner"
         }
         
         method_name = method_map.get(job_def.target_runner_name)

@@ -19,10 +19,11 @@ from src.repositories.persistent_environment_profile_repository import Persisten
 from src.repositories.persistent_seller_environment_binding_repository import PersistentSellerEnvironmentBindingRepository
 from src.repositories.persistent_seller_policy_snapshot_repository import PersistentSellerPolicySnapshotRepository
 from src.repositories.persistent_seller_location_snapshot_repository import PersistentSellerLocationSnapshotRepository
-
+from src.repositories.persistent_escalation_state_repository import PersistentEscalationStateRepository, PersistentEscalationPolicyRepository
 from .services.job_ops_service import JobOpsService
 from .services.scheduler_ops_service import SchedulerOpsService
 from .services.candidate_ops_service import CandidateOpsService
+from .services.escalation_ops_service import EscalationOpsService
 from .services.listing_ops_service import ListingOpsService
 from .services.review_ops_service import ReviewOpsService
 from .services.event_ops_service import EventOpsService
@@ -58,6 +59,8 @@ class AdminCliBootstrap:
         job_repo = PersistentJobRunRepository(session)
         evidence_repo = PersistentCandidateEvidenceRepository(session)
         notification_repo = PersistentNotificationHistoryRepository(session)
+        escalation_state_repo = PersistentEscalationStateRepository(session)
+        escalation_policy_repo = PersistentEscalationPolicyRepository(session)
         
         # 2. Seller & Environment
         seller_env = SellerEnvironmentBootstrap.bootstrap(session)
@@ -129,6 +132,19 @@ class AdminCliBootstrap:
             ntf_query, ntf_resend, ntf_test, ntf_rule, ntf_channel, ntf_stats
         )
         
+        # Bootstrapping full escalation layer to get v0.2 components
+        from src.escalation.bootstrap import EscalationBootstrap
+        esc_components = EscalationBootstrap.bootstrap(session, notification_dispatcher)
+        escalation_service = EscalationOpsService(
+            state_repo=esc_components["state_repo"],
+            policy_repo=esc_components["policy_repo"],
+            bulk_action_service=esc_components.get("bulk_action_service"),
+            note_service=esc_components.get("note_service"),
+            timeline_builder=esc_components.get("timeline_builder"),
+            metrics_service=esc_components.get("metrics_service"),
+            maintenance_service=esc_components.get("maintenance_service")
+        )
+        
         return AdminCliAppContainer(
             job_service=job_service,
             scheduler_service=scheduler_service,
@@ -141,6 +157,7 @@ class AdminCliBootstrap:
             config_service=config_service,
             doctor_service=doctor_service,
             notification_service=notification_service,
+            escalation_service=escalation_service,
             seller_ops=seller_ops,
             seller_doctor=seller_doctor,
             seller_snapshot_ops=seller_snapshot_ops,

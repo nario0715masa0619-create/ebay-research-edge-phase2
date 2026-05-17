@@ -313,3 +313,161 @@ class SellerLocationSnapshotModel(Base):
     merchant_location_key: Mapped[str] = mapped_column(String(255), index=True)
     payload_json: Mapped[Dict[str, Any]] = mapped_column(JSON)
     fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, index=True)
+
+
+class EscalationStateModel(Base):
+    __tablename__ = "escalation_states"
+    
+    state_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    source_event_id: Mapped[str] = mapped_column(String(255), index=True)
+    source_history_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    source_event_type: Mapped[str] = mapped_column(String(100), index=True)
+    seller_account_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    environment_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    sku: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    dedupe_key: Mapped[str] = mapped_column(String(500), unique=True, index=True)
+    
+    current_status: Mapped[str] = mapped_column(String(50), index=True)
+    current_severity: Mapped[str] = mapped_column(String(50))
+    current_priority: Mapped[str] = mapped_column(String(50))
+    
+    reminder_count: Mapped[int] = mapped_column(Integer, default=0)
+    escalation_level: Mapped[int] = mapped_column(Integer, default=0)
+    
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    last_notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    last_reminded_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_escalated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    
+    acked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    acked_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    silenced_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    resolved_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    resolution_note: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    
+    # v0.2 Extensions
+    aging_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    aging_bucket: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    sla_target_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    sla_breached_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    sla_breach_count: Mapped[int] = mapped_column(Integer, default=0)
+    re_escalation_count: Mapped[int] = mapped_column(Integer, default=0)
+    last_re_escalated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    maintenance_suppressed_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    latest_note_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    latest_note_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    route_snapshot_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    incident_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    
+    source_status_snapshot: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    meta_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    __table_args__ = (
+        Index("idx_esc_aging_status", "aging_bucket", "current_status"),
+        Index("idx_esc_sla_status", "sla_breached_at", "current_status"),
+        Index("idx_esc_re_esc_status", "re_escalation_count", "current_status"),
+    )
+
+
+class EscalationStateTransitionModel(Base):
+    __tablename__ = "escalation_state_transitions"
+    
+    transition_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    state_id: Mapped[str] = mapped_column(String(255), index=True)
+    action_type: Mapped[str] = mapped_column(String(50))
+    previous_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    new_status: Mapped[str] = mapped_column(String(50))
+    actor_type: Mapped[str] = mapped_column(String(50))
+    actor_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    meta_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class EscalationPolicyModel(Base):
+    __tablename__ = "escalation_policies"
+    
+    policy_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    seller_account_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    environment_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    event_type: Mapped[str] = mapped_column(String(100), index=True)
+    base_severity: Mapped[str] = mapped_column(String(50))
+    
+    reminder_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    reminder_interval_seconds: Mapped[int] = mapped_column(Integer, default=300)
+    reminder_max_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    allow_reminder_after_ack: Mapped[bool] = mapped_column(Boolean, default=False)
+    silence_respected: Mapped[bool] = mapped_column(Boolean, default=True)
+    auto_resolve_on_source_recovery: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    escalation_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    escalation_steps_json: Mapped[Dict[str, Any]] = mapped_column(JSON)
+    dedupe_scope: Mapped[str] = mapped_column(String(100))
+    
+    # v0.2 Extensions
+    policy_version: Mapped[int] = mapped_column(Integer, default=1)
+    re_escalation_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    re_escalation_interval_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    re_escalation_max_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    sla_target_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    sla_breach_severity: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    sla_breach_priority: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    maintenance_window_respected: Mapped[bool] = mapped_column(Boolean, default=True)
+    bulk_action_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    route_override_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    __table_args__ = (
+        Index("idx_esc_policy_version_enabled", "policy_version", "enabled"),
+    )
+
+class EscalationNoteModel(Base):
+    __tablename__ = "escalation_notes"
+    
+    note_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    state_id: Mapped[str] = mapped_column(String(255), index=True)
+    author_id: Mapped[str] = mapped_column(String(255))
+    author_type: Mapped[str] = mapped_column(String(50))
+    body: Mapped[str] = mapped_column(Text)
+    is_internal: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    
+    __table_args__ = (
+        Index("idx_esc_note_state_created", "state_id", "created_at"),
+    )
+
+class MaintenanceWindowModel(Base):
+    __tablename__ = "maintenance_windows"
+    
+    window_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    seller_account_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    environment_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    event_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    starts_at: Mapped[datetime] = mapped_column(DateTime)
+    ends_at: Mapped[datetime] = mapped_column(DateTime)
+    
+    action: Mapped[str] = mapped_column(String(50), default="suppress_all") # suppress_reminder, suppress_escalation, suppress_all, downgrade_to_info
+    reason: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    __table_args__ = (
+        Index("idx_maint_enabled_times", "enabled", "starts_at", "ends_at"),
+        Index("idx_maint_scope", "seller_account_id", "environment_type", "event_type"),
+    )

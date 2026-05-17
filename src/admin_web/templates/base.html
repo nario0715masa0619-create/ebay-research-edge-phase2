@@ -37,6 +37,9 @@
                 <li class="{% if '/admin/notifications' in request.url.path %}active{% endif %}">
                     <a href="/admin/notifications{{ merge_query_params(request) }}">🔔 Notifications</a>
                 </li>
+                <li class="{% if '/admin/escalations' in request.url.path %}active{% endif %}">
+                    <a href="/admin/escalations{{ merge_query_params(request) }}">🚨 Escalations</a>
+                </li>
                 <li class="{% if '/admin/doctor' in request.url.path %}active{% endif %}">
                     <a href="/admin/doctor{{ merge_query_params(request) }}">🩺 Doctor</a>
                 </li>

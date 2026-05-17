@@ -102,6 +102,7 @@ from src.admin_web.routes.candidates import router as candidates_router
 from src.admin_web.routes.listings import router as listings_router
 from src.admin_web.routes.review import router as review_router
 from src.admin_web.routes.notifications import router as notifications_router
+from src.admin_web.routes.escalation import router as escalation_router
 from src.admin_web.routes.doctor import router as doctor_router
 
 # Include routers
@@ -112,4 +113,5 @@ app.include_router(candidates_router, prefix="/admin", dependencies=[Depends(aut
 app.include_router(listings_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
 app.include_router(review_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
 app.include_router(notifications_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
+app.include_router(escalation_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
 app.include_router(doctor_router, prefix="/admin", dependencies=[Depends(authenticate_user)])

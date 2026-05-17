@@ -31,6 +31,8 @@ class OrchestratorBootstrap:
         # 2. Lock Manager
         lock_manager = JobLockManager()
         
+        from src.escalation.runner_adapter import EscalationReminderRunnerAdapter
+        
         # 3. Runner Map
         # Connect target_runner_name to actual objects
         runner_map = {
@@ -40,7 +42,8 @@ class OrchestratorBootstrap:
             "listing_execution_runner": gateways.get("listing_execution"),
             "monitoring_revise_runner": pipelines.get("monitoring"),
             "listing_sync_recovery_runner": gateways.get("listing_sync"),
-            "housekeeping_runner": pipelines.get("housekeeping") or HousekeepingRunner()
+            "housekeeping_runner": pipelines.get("housekeeping") or HousekeepingRunner(),
+            "escalation_reminder_runner": pipelines.get("escalation_reminder") or EscalationReminderRunnerAdapter()
         }
         
         # 4. Engine

@@ -16,7 +16,7 @@ from .commands.doctor import DoctorCommands
 from .commands.config import ConfigCommands
 from .commands.notifications import NotificationCommands
 from .commands.sellers import SellerCommands
-
+from .commands.escalation import EscalationCommands
 def main():
     parser = argparse.ArgumentParser(description="eBay Research Edge Admin/Ops CLI")
     parser.add_argument("--format", choices=["table", "json", "text"], default="table")
@@ -147,6 +147,81 @@ def main():
     ntf_stats.add_argument("--hours", type=int, default=24)
     ntf_stats.add_argument("--event-type")
     
+    # Escalation
+    esc_p = subparsers.add_parser("escalation")
+    esc_sub = esc_p.add_subparsers(dest="command")
+    
+    esc_sub.add_parser("active")
+    
+    esc_recent = esc_sub.add_parser("recent")
+    esc_recent.add_argument("--limit", type=int, default=50)
+    
+    esc_show = esc_sub.add_parser("show")
+    esc_show.add_argument("state_id")
+    
+    esc_ack = esc_sub.add_parser("ack")
+    esc_ack.add_argument("state_id")
+    esc_ack.add_argument("--note")
+    
+    esc_resolve = esc_sub.add_parser("resolve")
+    esc_resolve.add_argument("state_id")
+    esc_resolve.add_argument("--note")
+    
+    esc_silence = esc_sub.add_parser("silence")
+    esc_silence.add_argument("state_id")
+    esc_silence.add_argument("--hours", type=int, default=24)
+    esc_silence.add_argument("--note")
+    
+    esc_unsilence = esc_sub.add_parser("unsilence")
+    esc_unsilence.add_argument("state_id")
+    esc_unsilence.add_argument("--note")
+    
+    esc_sub.add_parser("stats")
+    esc_sub.add_parser("policies")
+    
+    esc_sub.add_parser("breached")
+    
+    esc_aging = esc_sub.add_parser("aging")
+    esc_aging.add_argument("--bucket", required=True)
+    
+    esc_tl = esc_sub.add_parser("timeline")
+    esc_tl.add_argument("state_id")
+    
+    # Notes
+    esc_note = esc_sub.add_parser("notes")
+    esc_note_sub = esc_note.add_subparsers(dest="subcommand")
+    esc_note_list = esc_note_sub.add_parser("list")
+    esc_note_list.add_argument("state_id")
+    esc_note_add = esc_note_sub.add_parser("add")
+    esc_note_add.add_argument("state_id")
+    esc_note_add.add_argument("--body", required=True)
+    
+    # Bulk actions
+    esc_bulk_ack = esc_sub.add_parser("bulk-ack")
+    esc_bulk_ack.add_argument("--state-ids", required=True, help="comma-separated")
+    
+    esc_bulk_res = esc_sub.add_parser("bulk-resolve")
+    esc_bulk_res.add_argument("--state-ids", required=True)
+    
+    esc_bulk_sil = esc_sub.add_parser("bulk-silence")
+    esc_bulk_sil.add_argument("--state-ids", required=True)
+    esc_bulk_sil.add_argument("--hours", type=int, default=24)
+    
+    # Maintenance
+    maint_p = esc_sub.add_parser("maintenance")
+    maint_sub = maint_p.add_subparsers(dest="subcommand")
+    maint_sub.add_parser("list")
+    maint_add = maint_sub.add_parser("add")
+    maint_add.add_argument("--starts", required=True, help="ISO format")
+    maint_add.add_argument("--ends", required=True, help="ISO format")
+    maint_add.add_argument("--action", default="suppress_all")
+    maint_add.add_argument("--seller")
+    maint_add.add_argument("--env")
+    maint_add.add_argument("--event")
+    
+    maint_rm = maint_sub.add_parser("remove")
+    maint_rm.add_argument("window_id")
+    
     # Ops (Sellers/Environments)
     ops_p = subparsers.add_parser("ops")
     ops_sub = ops_p.add_subparsers(dest="subgroup")
@@ -262,6 +337,30 @@ def main():
                 elif args.subcommand == "for-event": result = cmd.rules_for_event(context, args.event_type, severity=args.severity)
             elif args.command == "channels": result = cmd.channels(context)
             elif args.command == "stats": result = cmd.stats(context, hours=args.hours, event_type=args.event_type)
+        elif args.group == "escalation":
+            cmd = EscalationCommands(app.escalation_service)
+            if args.command == "active": result = cmd.active(context)
+            elif args.command == "recent": result = cmd.recent(context, limit=args.limit)
+            elif args.command == "show": result = cmd.show(context, args.state_id)
+            elif args.command == "ack": result = cmd.ack(context, args.state_id, note=getattr(args, "note", None))
+            elif args.command == "resolve": result = cmd.resolve(context, args.state_id, note=getattr(args, "note", None))
+            elif args.command == "silence": result = cmd.silence(context, args.state_id, hours=args.hours, note=getattr(args, "note", None))
+            elif args.command == "unsilence": result = cmd.unsilence(context, args.state_id, note=getattr(args, "note", None))
+            elif args.command == "stats": result = cmd.stats(context)
+            elif args.command == "policies": result = cmd.policies(context)
+            elif args.command == "breached": result = cmd.breached(context)
+            elif args.command == "aging": result = cmd.aging(context, args.bucket)
+            elif args.command == "timeline": result = cmd.timeline(context, args.state_id)
+            elif args.command == "notes":
+                if args.subcommand == "list": result = cmd.list_notes(context, args.state_id)
+                elif args.subcommand == "add": result = cmd.add_note(context, args.state_id, args.body)
+            elif args.command == "bulk-ack": result = cmd.bulk_ack(context, args.state_ids)
+            elif args.command == "bulk-resolve": result = cmd.bulk_resolve(context, args.state_ids)
+            elif args.command == "bulk-silence": result = cmd.bulk_silence(context, args.state_ids, args.hours)
+            elif args.command == "maintenance":
+                if args.subcommand == "list": result = cmd.maintenance_list(context)
+                elif args.subcommand == "add": result = cmd.maintenance_add(context, args.starts, args.ends, args.action, getattr(args, "seller", None), getattr(args, "env", None), getattr(args, "event", None))
+                elif args.subcommand == "remove": result = cmd.maintenance_remove(context, args.window_id)
             
         elif args.group == "ops":
             cmd = SellerCommands(app.seller_ops, app.seller_doctor, app.seller_snapshot_ops)
