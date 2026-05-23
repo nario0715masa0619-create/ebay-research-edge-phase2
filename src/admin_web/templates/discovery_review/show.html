@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Review Candidate: {{ view.candidate_id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Candidate: {{ view.canonical_title }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/admin/discovery/review/" class="btn btn-sm btn-outline-secondary">Back to Queue</a>
+    </div>
+</div>
+
+{% if view.split_recommended %}
+<div class="alert alert-danger">
+    <strong>Recommendation: SPLIT</strong><br>
+    {{ view.split_reason }}
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <h4>Source Items to Merge</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>Source ID</th>
+                        <th>Raw Title</th>
+                        <th>Match Conf.</th>
+                        <th>Penalties (Var/Bundle)</th>
+                        <th>Ambiguity Flags</th>
+                        <th>Explanations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for src in view.sources %}
+                    <tr class="{% if 'conflict' in src.ambiguity_flags|join(',') %}table-danger{% elif src.ambiguity_flags|length > 0 %}table-warning{% endif %}">
+                        <td>{{ src.source_item_id }}</td>
+                        <td>{{ src.raw_title }}</td>
+                        <td>{{ "%.2f"|format(src.match_confidence) }}</td>
+                        <td>V: {{ src.variation_penalty }} / B: {{ src.bundle_penalty }}</td>
+                        <td>
+                            {% for flag in src.ambiguity_flags %}
+                            <span class="badge bg-secondary">{{ flag }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <ul class="mb-0 ps-3">
+                                {% for exp in src.explanation_lines %}
+                                <li><small>{{ exp }}</small></li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <h4 class="mt-4">Audit History</h4>
+        <ul class="list-group">
+            {% for log in view.audit_history %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ log.actor }}</strong> performed <strong>{{ log.action }}</strong>
+                    <br><small class="text-muted">{{ log.reason }}</small>
+                </div>
+                <span class="badge bg-secondary rounded-pill">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted">No audit history found.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <strong>Review Decision</strong>
+            </div>
+            <div class="card-body">
+                <p>Current Status: <strong>{{ view.review_status.value|upper }}</strong></p>
+                <form action="/admin/discovery/review/{{ view.candidate_id }}/decision" method="POST">
+                    <div class="mb-3">
+                        <label for="note" class="form-label">Operator Note</label>
+                        <textarea class="form-control" id="note" name="note" rows="3" placeholder="Optional context for your decision..."></textarea>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="action" value="approve" class="btn btn-success" onclick="return confirm('Are you sure you want to APPROVE this merge?');">Approve</button>
+                        <button type="submit" name="action" value="reject" class="btn btn-danger" onclick="return confirm('Are you sure you want to REJECT this merge?');">Reject</button>
+                        <button type="submit" name="action" value="hold" class="btn btn-warning" onclick="return confirm('Place candidate on HOLD?');">Hold for Later</button>
+                        <button type="submit" name="action" value="note" class="btn btn-outline-secondary">Add Note Only</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -21,6 +21,23 @@ def get_standard_job_definitions() -> list[JobDefinition]:
             lock_key="source_normalization"
         ),
         JobDefinition(
+            job_name="review_queue_refresh_job",
+            job_group="pipeline",
+            schedule_type="interval",
+            interval_seconds=3600 * 2, # 2 hours
+            depends_on=["source_normalization_job"],
+            target_runner_name="review_queue_refresh_runner",
+            lock_key="review_queue_refresh"
+        ),
+        JobDefinition(
+            job_name="alias_reprocess_job",
+            job_group="pipeline",
+            schedule_type="interval",
+            interval_seconds=3600 * 24, # Daily background job
+            target_runner_name="alias_reprocess_runner",
+            lock_key="alias_reprocess"
+        ),
+        JobDefinition(
             job_name="research_candidate_job",
             job_group="pipeline",
             schedule_type="interval",

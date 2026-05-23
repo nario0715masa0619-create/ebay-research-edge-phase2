@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Discovery Review Queue{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Discovery Review Queue</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="/admin/discovery/review/alias/list" class="btn btn-sm btn-outline-secondary">Manage Aliases</a>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>Severity</th>
+                <th>Candidate ID</th>
+                <th>Canonical Title</th>
+                <th>Brand</th>
+                <th>Sources</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><span class="badge {% if item.ambiguity_severity > 0 %}bg-danger{% else %}bg-warning{% endif %}">{{ item.ambiguity_severity }}</span></td>
+                <td><a href="/admin/discovery/review/{{ item.candidate_id }}">{{ item.candidate_id }}</a></td>
+                <td>{{ item.canonical_title }}</td>
+                <td>{{ item.brand or '-' }}</td>
+                <td>{{ item.source_count }}</td>
+                <td>{{ item.review_status.value }}</td>
+                <td>{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <a href="/admin/discovery/review/{{ item.candidate_id }}" class="btn btn-sm btn-primary">Review</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center">No pending reviews found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

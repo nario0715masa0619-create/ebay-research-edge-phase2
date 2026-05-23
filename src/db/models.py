@@ -558,3 +558,33 @@ class MatchEvidenceModel(Base):
     explanation_lines_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+class AliasDictionaryModel(Base):
+    __tablename__ = 'alias_dictionaries'
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    alias_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    alias_type: Mapped[str] = mapped_column(String(50), index=True) # brand, model, mpn_rule, noise
+    token: Mapped[str] = mapped_column(String(255), index=True)
+    resolution: Mapped[str] = mapped_column(String(255))
+    
+    source_platform: Mapped[Optional[str]] = mapped_column(String(50), index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class ReviewAuditLogModel(Base):
+    __tablename__ = 'review_audit_logs'
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    decision_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    candidate_id: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    
+    actor: Mapped[str] = mapped_column(String(255))
+    action: Mapped[str] = mapped_column(String(50), index=True)
+    reason: Mapped[Optional[str]] = mapped_column(Text)
+    target_alias: Mapped[Optional[str]] = mapped_column(String(255))
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+

@@ -254,6 +254,42 @@ def main():
     env_sub = env_p.add_subparsers(dest="command")
     env_sub.add_parser("list")
     
+    # Discovery
+    disc_p = subparsers.add_parser("discovery")
+    disc_sub = disc_p.add_subparsers(dest="subgroup")
+    
+    # Discovery Review
+    drev_p = disc_sub.add_parser("review")
+    drev_sub = drev_p.add_subparsers(dest="command")
+    drev_sub.add_parser("list")
+    drev_show = drev_sub.add_parser("show")
+    drev_show.add_argument("--candidate-id", required=True)
+    drev_approve = drev_sub.add_parser("approve")
+    drev_approve.add_argument("--candidate-id", required=True)
+    drev_approve.add_argument("--actor", default="cli_admin")
+    drev_reject = drev_sub.add_parser("reject")
+    drev_reject.add_argument("--candidate-id", required=True)
+    drev_reject.add_argument("--actor", default="cli_admin")
+    drev_hold = drev_sub.add_parser("hold")
+    drev_hold.add_argument("--candidate-id", required=True)
+    drev_hold.add_argument("--actor", default="cli_admin")
+    
+    # Discovery Alias
+    dalias_p = disc_sub.add_parser("alias")
+    dalias_sub = dalias_p.add_subparsers(dest="command")
+    dalias_sub.add_parser("list")
+    dalias_add = dalias_sub.add_parser("add")
+    dalias_add.add_argument("--type", dest="alias_type", required=True)
+    dalias_add.add_argument("--token", required=True)
+    dalias_add.add_argument("--resolution", required=True)
+    dalias_add.add_argument("--actor", default="cli_admin")
+    
+    # Discovery Seed
+    dseed_p = disc_sub.add_parser("seed")
+    dseed_sub = dseed_p.add_subparsers(dest="command")
+    dseed_show = dseed_sub.add_parser("show")
+    dseed_show.add_argument("--candidate-id", required=True)
+    
     args = parser.parse_args()
     
     if not args.group:
@@ -373,6 +409,39 @@ def main():
                 elif args.command == "locations": result = cmd.show_locations(context, args.seller_account_id, args.location_key)
             elif args.subgroup == "environments":
                 if args.command == "list": result = cmd.list_environments(context)
+                
+        elif args.group == "discovery":
+            # Lazy import to avoid circular dep if any
+            from src.admin_cli.commands.discovery_review import DiscoveryReviewCommands, DiscoveryAliasCommands, DiscoverySeedCommands
+            # Need ops_service. we'll init it inline for CLI
+            from src.admin_cli.services.discovery_review_ops_service import DiscoveryReviewOpsService
+            from src.discovery.review_queue_service import ReviewQueueService
+            from src.discovery.review_decision_service import ReviewDecisionService
+            from src.repositories.persistent_review_queue_repository import PersistentReviewQueueRepository, PersistentReviewAuditRepository
+            from src.repositories.persistent_alias_dictionary_repository import PersistentAliasDictionaryRepository
+            
+            queue_repo = PersistentReviewQueueRepository()
+            audit_repo = PersistentReviewAuditRepository()
+            alias_repo = PersistentAliasDictionaryRepository()
+            
+            q_svc = ReviewQueueService(queue_repo)
+            d_svc = ReviewDecisionService(queue_repo, audit_repo)
+            ops_svc = DiscoveryReviewOpsService(q_svc, d_svc, alias_repo)
+            
+            if args.subgroup == "review":
+                cmd = DiscoveryReviewCommands(ops_svc)
+                if args.command == "list": result = cmd.list(context)
+                elif args.command == "show": result = cmd.show(context, args.candidate_id)
+                elif args.command == "approve": result = cmd.approve(context, args.candidate_id, args.actor)
+                elif args.command == "reject": result = cmd.reject(context, args.candidate_id, args.actor)
+                elif args.command == "hold": result = cmd.hold(context, args.candidate_id, args.actor)
+            elif args.subgroup == "alias":
+                cmd = DiscoveryAliasCommands(ops_svc)
+                if args.command == "list": result = cmd.list(context)
+                elif args.command == "add": result = cmd.add(context, args.actor, args.alias_type, args.token, args.resolution)
+            elif args.subgroup == "seed":
+                cmd = DiscoverySeedCommands()
+                if args.command == "show": result = cmd.show(context, args.candidate_id)
             
     except Exception as e:
         import traceback

@@ -33,11 +33,18 @@ class OrchestratorBootstrap:
         
         from src.escalation.runner_adapter import EscalationReminderRunnerAdapter
         
+        # Lazy imports for discovery runners
+        from src.discovery.orchestrator.discovery_review_runners import ReviewQueueRefreshRunner, AliasReprocessRunner
+        from src.discovery.candidate_normalizer import CandidateNormalizer
+        from src.repositories.persistent_alias_dictionary_repository import PersistentAliasDictionaryRepository
+        
         # 3. Runner Map
         # Connect target_runner_name to actual objects
         runner_map = {
             "source_collect_runner": pipelines.get("source_collector") or SourceCollector(),
             "source_normalization_runner": pipelines.get("source_normalization"),
+            "review_queue_refresh_runner": ReviewQueueRefreshRunner(CandidateNormalizer(None, None, None)), # Minimal mock for bootstrap
+            "alias_reprocess_runner": AliasReprocessRunner(CandidateNormalizer(None, None, None), PersistentAliasDictionaryRepository()),
             "research_candidate_runner": pipelines.get("research"),
             "listing_readiness_runner": pipelines.get("readiness"),
             "listing_execution_runner": gateways.get("listing_execution"),
