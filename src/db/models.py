@@ -471,3 +471,90 @@ class MaintenanceWindowModel(Base):
         Index("idx_maint_enabled_times", "enabled", "starts_at", "ends_at"),
         Index("idx_maint_scope", "seller_account_id", "environment_type", "event_type"),
     )
+
+class NormalizedSourceItemModel(Base):
+    __tablename__ = "normalized_source_items"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    normalized_item_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    source_item_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    normalized_title: Mapped[str] = mapped_column(Text)
+    
+    normalized_brand: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    normalized_model: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    normalized_mpn: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    
+    strict_gtins_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    loose_gtins_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    
+    normalized_condition: Mapped[Optional[str]] = mapped_column(String(50))
+    normalized_quantity: Mapped[Optional[int]] = mapped_column(Integer)
+    
+    variation_keys_json: Mapped[Optional[Dict[str, str]]] = mapped_column(JSON)
+    bundle_flags_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    parsed_attributes_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
+    
+    identity_signals_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
+    normalization_flags_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    
+    review_required: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CanonicalProductCandidateModel(Base):
+    __tablename__ = "canonical_product_candidates"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    candidate_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    canonical_title: Mapped[str] = mapped_column(Text)
+    
+    canonical_brand: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    canonical_model: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    canonical_mpn: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    canonical_gtins_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    canonical_condition_family: Mapped[Optional[str]] = mapped_column(String(50))
+    
+    variation_signature: Mapped[Optional[str]] = mapped_column(String(500), index=True)
+    bundle_signature: Mapped[Optional[str]] = mapped_column(String(500))
+    
+    source_count: Mapped[int] = mapped_column(Integer, default=0)
+    matched_source_item_ids_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    
+    match_confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    ambiguity_flags_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    review_required: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    
+    category_candidates_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    feature_payload_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        Index("idx_canonical_brand_mpn", "canonical_brand", "canonical_mpn"),
+        Index("idx_canonical_brand_model", "canonical_brand", "canonical_model"),
+    )
+
+class MatchEvidenceModel(Base):
+    __tablename__ = "match_evidences"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    evidence_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    normalized_item_id: Mapped[str] = mapped_column(String(255), index=True)
+    candidate_id: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    
+    identifier_hits_json: Mapped[Optional[Dict[str, bool]]] = mapped_column(JSON)
+    title_similarity_score: Mapped[float] = mapped_column(Float, default=0.0)
+    brand_match_score: Mapped[float] = mapped_column(Float, default=0.0)
+    model_match_score: Mapped[float] = mapped_column(Float, default=0.0)
+    mpn_match_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    variation_penalty: Mapped[float] = mapped_column(Float, default=0.0)
+    bundle_penalty: Mapped[float] = mapped_column(Float, default=0.0)
+    condition_penalty: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    ambiguity_flags_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    explanation_lines_json: Mapped[Optional[List[str]]] = mapped_column(JSON)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

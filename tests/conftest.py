@@ -2,6 +2,7 @@ import os
 import pytest
 from sqlalchemy import create_engine
 from src.db.base import Base
+import src.db.models  # ensure models are registered before create_all
 
 # Set DATABASE_URL to a clean test DB before any module imports the app
 test_db_path = "test_web_interface.db"
