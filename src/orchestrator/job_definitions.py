@@ -12,6 +12,15 @@ def get_standard_job_definitions() -> list[JobDefinition]:
             run_on_startup=True
         ),
         JobDefinition(
+            job_name="source_normalization_job",
+            job_group="pipeline",
+            schedule_type="interval",
+            interval_seconds=3600 * 1, # 1 hour
+            depends_on=["source_collect_job"],
+            target_runner_name="source_normalization_runner",
+            lock_key="source_normalization"
+        ),
+        JobDefinition(
             job_name="research_candidate_job",
             job_group="pipeline",
             schedule_type="interval",
@@ -70,6 +79,6 @@ def get_standard_job_definitions() -> list[JobDefinition]:
             target_runner_name="escalation_reminder_runner",
             lock_key="escalation_reminder_job",
             allow_overlap=False,
-            kwargs={"enable_re_escalation": True}
+            default_kwargs={"enable_re_escalation": True}
         )
     ]

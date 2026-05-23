@@ -1,5 +1,5 @@
-from typing import Tuple, List, Dict, Any
-from .models import NormalizedSourceItem, CanonicalProductCandidate, MatchEvidence
+from typing import Tuple, List, Dict, Any, Optional
+from .models import NormalizedSourceItem, CanonicalProductCandidate, MatchEvidence, VariationDecision, BundleDecision, VariationDecisionClass, BundleDecisionClass
 
 class MatchConfidenceEngine:
     """
@@ -22,7 +22,9 @@ class MatchConfidenceEngine:
         union = set1.union(set2)
         return len(intersection) / len(union)
 
-    def evaluate(self, item: NormalizedSourceItem, candidate: CanonicalProductCandidate) -> MatchEvidence:
+    def evaluate(self, item: NormalizedSourceItem, candidate: CanonicalProductCandidate,
+                 variation_decision: Optional[VariationDecision] = None,
+                 bundle_decision: Optional[BundleDecision] = None) -> Tuple[MatchEvidence, float]:
         evidence_id = f"ev_{item.normalized_item_id}_{candidate.candidate_id}"
         evidence = MatchEvidence(
             evidence_id=evidence_id,
@@ -75,13 +77,33 @@ class MatchConfidenceEngine:
             confidence = 0.6 + (title_sim * 0.3)  # Max 0.9
             evidence.ambiguity_flags.append("soft_match_title_only")
             
-        # 4. Final cap and review checks
+        # 4. Apply Variation & Bundle Penalties (Phase B)
+        if variation_decision:
+            evidence.variation_penalty = variation_decision.penalty_score
+            confidence -= variation_decision.penalty_score
+            if variation_decision.decision_class == VariationDecisionClass.CONFLICT:
+                evidence.ambiguity_flags.append("variation_conflict")
+            elif variation_decision.decision_class == VariationDecisionClass.AMBIGUOUS:
+                evidence.ambiguity_flags.append("variation_ambiguous")
+            for r in variation_decision.conflict_reasons:
+                evidence.explanation_lines.append(f"Variation Issue: {r}")
+                
+        if bundle_decision:
+            evidence.bundle_penalty = bundle_decision.penalty_score
+            confidence -= bundle_decision.penalty_score
+            if bundle_decision.decision_class == BundleDecisionClass.CONFLICT:
+                evidence.ambiguity_flags.append("bundle_conflict")
+            for r in bundle_decision.conflict_reasons:
+                evidence.explanation_lines.append(f"Bundle Issue: {r}")
+                
+        confidence = max(0.0, confidence)
+            
+        # 5. Final explanation
         if confidence >= 0.95 and not evidence.ambiguity_flags:
             evidence.explanation_lines.append("Exact match via strong identifiers.")
-        elif confidence >= 0.8:
-            evidence.explanation_lines.append("High confidence match, possible review needed.")
+        elif confidence >= 0.6:
+            evidence.explanation_lines.append(f"Match with confidence {confidence:.2f}, possible review needed.")
         else:
-            evidence.explanation_lines.append("Low confidence or ambiguous match.")
+            evidence.explanation_lines.append(f"Low confidence ({confidence:.2f}) or highly ambiguous match.")
             
-        # We don't save confidence on evidence directly, but it drives the normalizer's decision
         return evidence, confidence

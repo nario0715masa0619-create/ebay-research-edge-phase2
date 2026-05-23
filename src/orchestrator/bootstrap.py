@@ -37,6 +37,7 @@ class OrchestratorBootstrap:
         # Connect target_runner_name to actual objects
         runner_map = {
             "source_collect_runner": pipelines.get("source_collector") or SourceCollector(),
+            "source_normalization_runner": pipelines.get("source_normalization"),
             "research_candidate_runner": pipelines.get("research"),
             "listing_readiness_runner": pipelines.get("readiness"),
             "listing_execution_runner": gateways.get("listing_execution"),

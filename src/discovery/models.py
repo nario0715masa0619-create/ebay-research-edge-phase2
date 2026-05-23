@@ -2,6 +2,34 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
+from enum import Enum
+
+class VariationDecisionClass(str, Enum):
+    EXACT = "exact"
+    COMPATIBLE = "compatible"
+    AMBIGUOUS = "ambiguous"
+    CONFLICT = "conflict"
+
+class BundleDecisionClass(str, Enum):
+    SINGLE = "single"
+    SET = "set"
+    BUNDLE = "bundle"
+    LOT = "lot"
+    CONFLICT = "conflict"
+
+@dataclass
+class VariationDecision:
+    decision_class: VariationDecisionClass
+    penalty_score: float = 0.0
+    extracted_keys: Dict[str, str] = field(default_factory=dict)
+    conflict_reasons: List[str] = field(default_factory=list)
+
+@dataclass
+class BundleDecision:
+    decision_class: BundleDecisionClass
+    penalty_score: float = 0.0
+    extracted_flags: List[str] = field(default_factory=list)
+    conflict_reasons: List[str] = field(default_factory=list)
 
 @dataclass
 class RawSourceItem:
@@ -128,5 +156,13 @@ class NormalizationResult:
     candidate: Optional[CanonicalProductCandidate] = None
     evidence: Optional[MatchEvidence] = None
     status: str = "success"
+    
+    # Phase B Primary Outputs
+    variation_decision: Optional[VariationDecision] = None
+    bundle_decision: Optional[BundleDecision] = None
+    ambiguity_flags: List[str] = field(default_factory=list)
     review_required: bool = False
+    refined_match_confidence: float = 0.0
+    explanation_lines: List[str] = field(default_factory=list)
+    
     errors: List[str] = field(default_factory=list)

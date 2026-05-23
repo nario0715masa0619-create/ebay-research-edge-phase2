@@ -41,11 +41,12 @@ class EscalationReminderRunnerAdapter:
             runner = components["runner"]
 
             # Run!
+            enable_re_escalation = kwargs.get("enable_re_escalation", False)
             result = runner.run(
                 db_session=session,
                 dry_run=dry_run,
                 seller_account_id=seller_account_id,
                 environment_type=environment_type,
-                **kwargs
+                enable_re_escalation=enable_re_escalation
             )
             return result
