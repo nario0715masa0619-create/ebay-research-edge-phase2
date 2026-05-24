@@ -709,3 +709,63 @@ class ListingDecisionModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class ListingHandoffModel(Base):
+    __tablename__ = 'listing_handoffs'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    handoff_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    candidate_id: Mapped[str] = mapped_column(String(255), ForeignKey('canonical_product_candidates.candidate_id'), index=True)
+    ranking_decision_id: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    seller_account_id: Mapped[str] = mapped_column(String(255), index=True)
+    environment: Mapped[str] = mapped_column(String(50))
+    
+    handoff_status: Mapped[str] = mapped_column(String(50), index=True)
+    handoff_decision: Mapped[str] = mapped_column(String(50), index=True)
+    execution_allowed: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    dispatch_target: Mapped[str] = mapped_column(String(50))
+    batch_id: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(255), index=True)
+    
+    duplicate_suppressed: Mapped[bool] = mapped_column(Boolean, default=False)
+    deferred: Mapped[bool] = mapped_column(Boolean, default=False)
+    retryable: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    block_reasons_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text)
+    next_retry_at: Mapped[Optional[datetime]] = mapped_column(DateTime, index=True)
+    
+    explanation_lines_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class ListingHandoffAttemptModel(Base):
+    __tablename__ = 'listing_handoff_attempts'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    attempt_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    handoff_id: Mapped[str] = mapped_column(String(255), ForeignKey('listing_handoffs.handoff_id'), index=True)
+    
+    attempt_number: Mapped[int] = mapped_column(Integer)
+    attempt_status: Mapped[str] = mapped_column(String(50), index=True)
+    
+    error_code: Mapped[Optional[str]] = mapped_column(String(255))
+    error_summary: Mapped[Optional[str]] = mapped_column(Text)
+    
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+class ListingHandoffTransitionModel(Base):
+    __tablename__ = 'listing_handoff_transitions'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    handoff_id: Mapped[str] = mapped_column(String(255), ForeignKey('listing_handoffs.handoff_id'), index=True)
+    
+    from_status: Mapped[str] = mapped_column(String(50))
+    to_status: Mapped[str] = mapped_column(String(50))
+    transition_reason: Mapped[str] = mapped_column(Text)
+    actor: Mapped[str] = mapped_column(String(255))
+    
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+

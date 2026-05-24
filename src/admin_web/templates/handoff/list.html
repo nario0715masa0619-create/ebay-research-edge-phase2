@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Handoff List - eBay Research Edge</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .status-completed { color: green; font-weight: bold; }
+        .status-rejected { color: red; font-weight: bold; }
+        .status-deferred { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Listing Handoffs</h1>
+    <p>Filter by Status: 
+        <a href="?">All</a> | 
+        <a href="?status=completed">Completed</a> | 
+        <a href="?status=deferred">Deferred</a> |
+        <a href="?status=rejected">Rejected</a>
+    </p>
+    <table>
+        <tr>
+            <th>Handoff ID</th>
+            <th>Candidate ID</th>
+            <th>Status</th>
+            <th>Decision</th>
+            <th>Retryable</th>
+            <th>Created At</th>
+            <th>Action</th>
+        </tr>
+        {% for h in handoffs %}
+        <tr>
+            <td>{{ h.handoff_id }}</td>
+            <td>{{ h.candidate_id }}</td>
+            <td class="status-{{ h.handoff_status.lower() }}">{{ h.handoff_status }}</td>
+            <td>{{ h.handoff_decision }}</td>
+            <td>{{ h.retryable }}</td>
+            <td>{{ h.created_at.strftime('%Y-%m-%d %H:%M:%S') if h.created_at else '' }}</td>
+            <td><a href="/handoffs/{{ h.handoff_id }}">Details</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
