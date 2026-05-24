@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ranking / Listing Decisions - Admin</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .auto_launch { color: white; background-color: green; padding: 3px 6px; border-radius: 3px; }
+        .manual_review { color: white; background-color: orange; padding: 3px 6px; border-radius: 3px; }
+        .watchlist { color: black; background-color: lightblue; padding: 3px 6px; border-radius: 3px; }
+        .reject { color: white; background-color: red; padding: 3px 6px; border-radius: 3px; }
+        .nav { margin-bottom: 20px; }
+        .nav a { margin-right: 15px; text-decoration: none; color: blue; }
+        .nav a.active { font-weight: bold; color: black; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Ranking / Listing Decisions</h1>
+    
+    <div class="nav">
+        <a href="/ranking/" class="{% if not current_queue %}active{% endif %}">All</a>
+        <a href="/ranking/?queue=auto_launch_queue" class="{% if current_queue == 'auto_launch_queue' %}active{% endif %}">Auto Launch Queue</a>
+        <a href="/ranking/?queue=review_queue" class="{% if current_queue == 'review_queue' %}active{% endif %}">Review Queue</a>
+        <a href="/ranking/?queue=watch_queue" class="{% if current_queue == 'watch_queue' %}active{% endif %}">Watchlist</a>
+        <a href="/ranking/?queue=reject_archive" class="{% if current_queue == 'reject_archive' %}active{% endif %}">Rejected</a>
+    </div>
+
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Decision ID</th>
+            <th>Candidate ID</th>
+            <th>Score</th>
+            <th>Decision</th>
+            <th>Queue Rank</th>
+            <th>Bucket</th>
+            <th>Blocked/Stale</th>
+        </tr>
+        {% for d in decisions %}
+        <tr>
+            <td>{{ d.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td><a href="/ranking/{{ d.ranking_decision_id }}">{{ d.ranking_decision_id[:8] }}...</a></td>
+            <td>{{ d.candidate_id }}</td>
+            <td><b>{{ "%.2f"|format(d.ranking_score) }}</b></td>
+            <td><span class="{{ d.decision_class }}">{{ d.decision_class | upper }}</span></td>
+            <td>{{ d.queue_rank }}</td>
+            <td>
+                {% if d.launch_priority_bucket %}Launch: {{ d.launch_priority_bucket }}{% endif %}
+                {% if d.review_priority_bucket %}Review: {{ d.review_priority_bucket }}{% endif %}
+            </td>
+            <td>
+                {% if d.execution_blocked %}<span style="color:red">Blocked</span>{% endif %}
+                {% if d.recheck_required %}<span style="color:orange">Stale</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

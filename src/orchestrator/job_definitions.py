@@ -56,6 +56,15 @@ def get_standard_job_definitions() -> list[JobDefinition]:
             lock_key="profitability_scoring"
         ),
         JobDefinition(
+            job_name="ranking_listing_decision_job",
+            job_group="pipeline",
+            schedule_type="interval",
+            interval_seconds=3600 * 2, # 2 hours
+            depends_on=["profitability_scoring_job"],
+            target_runner_name="ranking_listing_decision_runner",
+            lock_key="ranking_listing_decision"
+        ),
+        JobDefinition(
             job_name="research_candidate_job",
             job_group="pipeline",
             schedule_type="interval",

@@ -676,3 +676,36 @@ class ProfitabilityScoreModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+
+class ListingDecisionModel(Base):
+    __tablename__ = 'listing_decisions'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ranking_decision_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    candidate_id: Mapped[str] = mapped_column(String(255), ForeignKey('canonical_product_candidates.candidate_id'), index=True)
+    seller_account_id: Mapped[str] = mapped_column(String(255), index=True)
+    environment: Mapped[str] = mapped_column(String(50))
+    
+    ranking_score: Mapped[float] = mapped_column(Float, default=0.0, index=True)
+    decision_class: Mapped[str] = mapped_column(String(50), index=True)
+    decision_reason: Mapped[str] = mapped_column(Text, default='')
+    
+    queue_type: Mapped[str] = mapped_column(String(50), index=True)
+    queue_rank: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    
+    launch_priority_bucket: Mapped[Optional[str]] = mapped_column(String(50), index=True)
+    review_priority_bucket: Mapped[Optional[str]] = mapped_column(String(50), index=True)
+    
+    execution_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    block_reasons_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    
+    recheck_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    stale_flag: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    explanation_lines_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    ranking_components_json: Mapped[Dict[str, float]] = mapped_column(JSON, default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

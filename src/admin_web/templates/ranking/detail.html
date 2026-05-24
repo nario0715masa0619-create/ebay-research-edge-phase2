@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ranking Detail - Admin</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .auto_launch { color: green; font-weight: bold; }
+        .manual_review { color: orange; font-weight: bold; }
+        .watchlist { color: blue; font-weight: bold; }
+        .reject { color: red; font-weight: bold; }
+        ul { margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <a href="/ranking">&larr; Back to List</a>
+    
+    {% if not decision %}
+        <h1>Decision not found</h1>
+    {% else %}
+        <h1>Ranking Decision: {{ decision.ranking_decision_id }}</h1>
+        <div class="card">
+            <h3>Overview</h3>
+            <p><strong>Candidate ID:</strong> {{ decision.candidate_id }}</p>
+            <p><strong>Seller Account:</strong> {{ decision.seller_account_id }}</p>
+            <p><strong>Overall Score:</strong> <strong style="font-size: 1.2em;">{{ "%.2f"|format(decision.ranking_score) }} / 100</strong></p>
+            <p><strong>Decision:</strong> <span class="{{ decision.decision_class }}">{{ decision.decision_class | upper }}</span></p>
+            <p><strong>Reason:</strong> {{ decision.decision_reason }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Queue Assignment</h3>
+            <p><strong>Queue Type:</strong> {{ decision.queue_type }}</p>
+            <p><strong>Queue Rank:</strong> {{ decision.queue_rank }}</p>
+            {% if decision.launch_priority_bucket %}
+                <p><strong>Launch Bucket:</strong> {{ decision.launch_priority_bucket }}</p>
+            {% endif %}
+            {% if decision.review_priority_bucket %}
+                <p><strong>Review Bucket:</strong> {{ decision.review_priority_bucket }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="card">
+            <h3>Status & Blocks</h3>
+            <p><strong>Execution Blocked:</strong> {% if decision.execution_blocked %}<span style="color:red">YES</span>{% else %}NO{% endif %}</p>
+            <p><strong>Recheck Required (Stale):</strong> {% if decision.recheck_required %}<span style="color:orange">YES</span>{% else %}NO{% endif %}</p>
+            
+            <h4>Block Reasons:</h4>
+            <ul>
+            {% for b in decision.block_reasons_json %}
+                <li>{{ b }}</li>
+            {% else %}
+                <li>None</li>
+            {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h3>Explanation Lines (Audit Log)</h3>
+            <ul>
+            {% for line in decision.explanation_lines_json %}
+                <li>{{ line }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h3>Score Components Breakdown</h3>
+            <ul>
+                <li><strong>Profitability (0-1):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('profitability_component', 0)) }}</li>
+                <li><strong>Margin (0-1):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('margin_component', 0)) }}</li>
+                <li><strong>ROI (0-1):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('roi_component', 0)) }}</li>
+                <li><strong>Market Confidence (0-1):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('market_confidence_component', 0)) }}</li>
+                <li><strong>Demand Proxy (0-1):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('demand_component', 0)) }}</li>
+                <li><strong>Competition Proxy (0-1):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('competition_component', 0)) }}</li>
+                <br>
+                <li><strong>Review Penalty (Subtract):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('review_penalty', 0)) }}</li>
+                <li><strong>Unsafe Penalty (Subtract):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('unsafe_penalty', 0)) }}</li>
+                <li><strong>Staleness Penalty (Subtract):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('staleness_penalty', 0)) }}</li>
+                <li><strong>Capacity Penalty (Subtract):</strong> {{ "%.2f"|format(decision.ranking_components_json.get('capacity_penalty', 0)) }}</li>
+            </ul>
+        </div>
+    {% endif %}
+</body>
+</html>
