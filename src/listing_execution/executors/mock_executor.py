@@ -10,10 +10,11 @@ class MockExecutor(ExecutionGateway):
     Uses fixture rules mapped by SKU to determine execution outcome.
     """
     
-    def __init__(self, allowed_environments: List[str], allowed_sellers: List[str], fixture_rules: Dict[str, str]):
+    def __init__(self, allowed_environments: List[str], allowed_sellers: List[str], fixture_rules: Dict[str, str], repository=None):
         self.allowed_environments = allowed_environments
         self.allowed_sellers = allowed_sellers
         self.fixture_rules = fixture_rules
+        self.repository = repository
         
         # In-memory cache to simulate idempotency: {attempt_id: ExecutionResult}
         self._attempt_history: Dict[str, ExecutionResult] = {}
@@ -108,3 +109,26 @@ class MockExecutor(ExecutionGateway):
             "executed_at": result.executed_at,
             "is_dry_run": payload.dry_run
         })
+        
+        # Write to actual DB if repository is provided and not a dry run
+        if self.repository and not payload.dry_run:
+            try:
+                self.repository.create_attempt({
+                    "attempt_id": payload.attempt_id,
+                    "listing_id": payload.listing_id,
+                    "seller_account_id": payload.seller,
+                    "environment": payload.environment,
+                    "status": result.status,
+                    "payload_json": payload.to_dict(),
+                    "error_message": result.error_reason,
+                    "executed_at": result.executed_at,
+                    "finished_at": datetime.now(timezone.utc)
+                })
+            except Exception:
+                # For idempotency/mock testing, if it already exists we could just update
+                self.repository.update_status(
+                    attempt_id=payload.attempt_id,
+                    status=result.status,
+                    error_message=result.error_reason,
+                    finished_at=datetime.now(timezone.utc)
+                )

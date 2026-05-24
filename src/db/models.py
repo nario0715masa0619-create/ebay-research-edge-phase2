@@ -769,3 +769,32 @@ class ListingHandoffTransitionModel(Base):
     
     occurred_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
+
+class ExecutionAttemptModel(Base):
+    __tablename__ = 'execution_attempts'
+
+    attempt_id = Column(String, primary_key=True)
+    listing_id = Column(String, nullable=False, index=True)
+    candidate_id = Column(String, nullable=True)
+    handoff_id = Column(String, nullable=True)
+    seller_account_id = Column(String, nullable=False)
+    environment = Column(String, nullable=False)
+    
+    status = Column(String, nullable=False) # pending, executing, executed, failed, rolled_back, cancelled, deferred
+    payload_json = Column(Text, nullable=True) # Avoid storing secrets!
+    
+    result_summary = Column(String, nullable=True)
+    error_code = Column(String, nullable=True)
+    error_message = Column(String, nullable=True)
+    failure_boundary = Column(String, nullable=True)
+    retry_count = Column(Integer, default=0, nullable=False)
+    
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    executed_at = Column(DateTime(timezone=True), nullable=True)
+    finished_at = Column(DateTime(timezone=True), nullable=True)
+    
+    ranking_decision_id = Column(String, nullable=True)
+    scheduler_run_id = Column(String, nullable=True)
+    batch_id = Column(String, nullable=True)
+
