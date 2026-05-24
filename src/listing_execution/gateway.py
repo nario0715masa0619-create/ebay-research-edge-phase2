@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 from src.ebay.models import ProductCandidate, CandidateEvidence
 from src.ebay.api_client import EbayInventoryApiClient
-from .models import ListingExecutionRequest, ListingExecutionResult, ListingExecutionBatchResult
+from .old_models import ListingExecutionRequest, ListingExecutionResult, ListingExecutionBatchResult
 from .guard import CandidateExecutionGuard
 from .inventory_item_executor import InventoryItemExecutor
 from .offer_executor import OfferExecutor
