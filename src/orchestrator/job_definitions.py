@@ -38,6 +38,24 @@ def get_standard_job_definitions() -> list[JobDefinition]:
             lock_key="alias_reprocess"
         ),
         JobDefinition(
+            job_name="market_evaluation_job",
+            job_group="pipeline",
+            schedule_type="interval",
+            interval_seconds=3600 * 2, # 2 hours
+            depends_on=["source_normalization_job"],
+            target_runner_name="market_evaluation_runner",
+            lock_key="market_evaluation"
+        ),
+        JobDefinition(
+            job_name="profitability_scoring_job",
+            job_group="pipeline",
+            schedule_type="interval",
+            interval_seconds=3600 * 2, # 2 hours
+            depends_on=["market_evaluation_job"],
+            target_runner_name="profitability_scoring_runner",
+            lock_key="profitability_scoring"
+        ),
+        JobDefinition(
             job_name="research_candidate_job",
             job_group="pipeline",
             schedule_type="interval",

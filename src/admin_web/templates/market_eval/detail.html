@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evaluation Detail - Admin</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .status-success { color: green; font-weight: bold; }
+        .status-unsafe { color: orange; font-weight: bold; }
+        .status-error { color: red; font-weight: bold; }
+        pre { background-color: #f4f4f4; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <a href="/market-eval">&larr; Back to List</a>
+    
+    {% if not result %}
+        <h1>Evaluation not found</h1>
+    {% else %}
+        <h1>Evaluation: {{ result.market_evaluation_id }}</h1>
+        <div class="card">
+            <h3>Overview</h3>
+            <p><strong>Candidate ID:</strong> {{ result.candidate_id }}</p>
+            <p><strong>Status:</strong> <span class="status-{{ result.evaluation_status }}">{{ result.evaluation_status }}</span></p>
+            <p><strong>Confidence:</strong> {{ "%.2f"|format(result.market_confidence) }}</p>
+            <p><strong>Review Required:</strong> {{ result.review_required }}</p>
+            <p><strong>Summary:</strong> {{ result.evidence_summary }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Metrics</h3>
+            <p><strong>Price Band:</strong> ${{ result.price_low }} - ${{ result.price_median }} - ${{ result.price_high }}</p>
+            <p><strong>Comparables:</strong> {{ result.comparable_count }} (out of {{ result.raw_result_count }} raw)</p>
+            <p><strong>Category Alignment:</strong> {{ "%.2f"|format(result.category_alignment_score) }}</p>
+            <p><strong>Condition Alignment:</strong> {{ "%.2f"|format(result.condition_alignment_score) }}</p>
+            <p><strong>Attribute Alignment:</strong> {{ "%.2f"|format(result.attribute_alignment_score) }}</p>
+            <p><strong>Demand Proxy:</strong> {{ result.demand_proxy }}</p>
+            <p><strong>Competition Proxy:</strong> {{ result.competition_proxy }}</p>
+        </div>
+        
+        <div class="card">
+            <h3>Unsafe Reasons</h3>
+            <ul>
+            {% for r in result.unsafe_reasons_json %}
+                <li>{{ r }}</li>
+            {% else %}
+                <li>None</li>
+            {% endfor %}
+            </ul>
+        </div>
+        
+        {% if evidence %}
+        <div class="card">
+            <h3>Evidence Log</h3>
+            <p><strong>Provider:</strong> {{ evidence.provider_name }}</p>
+            <p><strong>Query:</strong> {{ evidence.search_request_payload_json.get('query', 'N/A') }}</p>
+            <h4>Execution Lines:</h4>
+            <ul>
+                {% for line in evidence.evidence_lines_json %}
+                <li>{{ line }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    {% endif %}
+</body>
+</html>

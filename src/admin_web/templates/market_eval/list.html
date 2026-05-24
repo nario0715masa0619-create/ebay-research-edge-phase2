@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Market Evaluations - Admin</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .success { color: green; }
+        .unsafe { color: orange; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Market Evaluations</h1>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Evaluation ID</th>
+            <th>Candidate ID</th>
+            <th>Status</th>
+            <th>Confidence</th>
+            <th>Comparables</th>
+            <th>Price Band</th>
+        </tr>
+        {% for r in results %}
+        <tr>
+            <td>{{ r.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td><a href="/market-eval/{{ r.market_evaluation_id }}">{{ r.market_evaluation_id[:8] }}...</a></td>
+            <td>{{ r.candidate_id }}</td>
+            <td class="{{ r.evaluation_status }}">{{ r.evaluation_status }}</td>
+            <td>{{ "%.2f"|format(r.market_confidence) }}</td>
+            <td>{{ r.comparable_count }}</td>
+            <td>
+                {% if r.price_median %}
+                ${{ "%.2f"|format(r.price_low) }} - ${{ "%.2f"|format(r.price_median) }} - ${{ "%.2f"|format(r.price_high) }}
+                {% else %}
+                N/A
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profitability Detail - Admin</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .card { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .launch_now { color: green; font-weight: bold; }
+        .review_required { color: orange; font-weight: bold; }
+        .watch { color: blue; font-weight: bold; }
+        .reject { color: red; font-weight: bold; }
+        pre { background-color: #f4f4f4; padding: 10px; overflow-x: auto; }
+        ul { margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <a href="/profitability">&larr; Back to List</a>
+    
+    {% if not score %}
+        <h1>Score not found</h1>
+    {% else %}
+        <h1>Profitability Score: {{ score.profitability_score_id }}</h1>
+        <div class="card">
+            <h3>Decision Overview</h3>
+            <p><strong>Candidate ID:</strong> {{ score.candidate_id }}</p>
+            <p><strong>Status:</strong> {{ score.scoring_status }}</p>
+            <p><strong>Decision:</strong> <span class="{{ score.decision_status }}">{{ score.decision_status | upper }}</span></p>
+            <p><strong>Reason:</strong> {{ score.decision_reason }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Financial Metrics</h3>
+            <p><strong>Expected Sale Price (Base):</strong> ${{ "%.2f"|format(score.expected_sale_price_base or 0) }}</p>
+            <p><strong>Expected Net Profit:</strong> ${{ "%.2f"|format(score.expected_net_profit) }}</p>
+            <p><strong>Margin:</strong> {{ "%.2f"|format(score.expected_margin * 100) }}%</p>
+            <p><strong>ROI:</strong> {{ "%.2f"|format(score.expected_roi * 100) }}%</p>
+            <hr>
+            <p><strong>Confidence Multiplier:</strong> {{ "%.2f"|format(score.confidence_multiplier) }}</p>
+            <p><strong>Confidence Adjusted Profit:</strong> <strong style="font-size: 1.2em;">${{ "%.2f"|format(score.confidence_adjusted_profit) }}</strong></p>
+            <p><strong>Overall Score (0-100):</strong> {{ "%.2f"|format(score.profitability_score) }}</p>
+        </div>
+        
+        <div class="card">
+            <h3>Cost & Penalty Breakdown</h3>
+            <ul>
+                <li><strong>Effective Source Cost:</strong> ${{ "%.2f"|format(score.components_json.get('effective_source_cost', 0)) }}</li>
+                <li><strong>Marketplace Fee:</strong> ${{ "%.2f"|format(score.components_json.get('marketplace_fee', 0)) }}</li>
+                <li><strong>Payment Cost:</strong> ${{ "%.2f"|format(score.components_json.get('payment_cost', 0)) }}</li>
+                <li><strong>Outbound Shipping:</strong> ${{ "%.2f"|format(score.components_json.get('outbound_shipping', 0)) }}</li>
+                <li><strong>Packaging & Handling:</strong> ${{ "%.2f"|format(score.components_json.get('packaging_cost', 0) + score.components_json.get('handling_cost', 0)) }}</li>
+                <br>
+                <li><strong>Risk Penalty Total:</strong> ${{ "%.2f"|format(score.components_json.get('risk_penalty_total', 0)) }}</li>
+                <li><strong>Competition Penalty:</strong> ${{ "%.2f"|format(score.components_json.get('competition_penalty', 0)) }}</li>
+                <li><strong>Ambiguity Penalty:</strong> ${{ "%.2f"|format(score.components_json.get('ambiguity_penalty', 0)) }}</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h3>Explanation Lines (Audit Log)</h3>
+            <ul>
+            {% for line in score.explanation_lines_json %}
+                <li>{{ line }}</li>
+            {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h3>Unsafe Reasons</h3>
+            <ul>
+            {% for u in score.unsafe_reasons_json %}
+                <li>{{ u }}</li>
+            {% else %}
+                <li>None</li>
+            {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</body>
+</html>

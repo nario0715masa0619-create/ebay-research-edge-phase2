@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profitability Scores - Admin</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .launch_now { color: white; background-color: green; padding: 3px 6px; border-radius: 3px; }
+        .review_required { color: white; background-color: orange; padding: 3px 6px; border-radius: 3px; }
+        .watch { color: black; background-color: lightblue; padding: 3px 6px; border-radius: 3px; }
+        .reject { color: white; background-color: red; padding: 3px 6px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Profitability Scores</h1>
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Score ID</th>
+            <th>Candidate ID</th>
+            <th>Decision</th>
+            <th>Base Price</th>
+            <th>Net Profit</th>
+            <th>Adjusted Profit</th>
+            <th>Multiplier</th>
+        </tr>
+        {% for s in scores %}
+        <tr>
+            <td>{{ s.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td><a href="/profitability/{{ s.profitability_score_id }}">{{ s.profitability_score_id[:8] }}...</a></td>
+            <td>{{ s.candidate_id }}</td>
+            <td><span class="{{ s.decision_status }}">{{ s.decision_status | upper }}</span></td>
+            <td>${{ "%.2f"|format(s.expected_sale_price_base or 0) }}</td>
+            <td>${{ "%.2f"|format(s.expected_net_profit) }}</td>
+            <td><b>${{ "%.2f"|format(s.confidence_adjusted_profit) }}</b></td>
+            <td>{{ "%.2f"|format(s.confidence_multiplier) }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

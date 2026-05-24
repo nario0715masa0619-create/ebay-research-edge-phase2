@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
-from sqlalchemy import String, Float, Integer, DateTime, JSON, ForeignKey, Boolean, Text, Index
+from sqlalchemy import String, Float, Integer, DateTime, JSON, ForeignKey, Boolean, Text, Index, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
@@ -587,4 +587,92 @@ class ReviewAuditLogModel(Base):
     target_alias: Mapped[Optional[str]] = mapped_column(String(255))
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+
+class MarketEvaluationResultModel(Base):
+    __tablename__ = 'market_evaluation_results'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    market_evaluation_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    candidate_id: Mapped[str] = mapped_column(String(255), ForeignKey('canonical_product_candidates.candidate_id'), index=True)
+    evaluation_status: Mapped[str] = mapped_column(String(50), index=True)
+    comparable_count: Mapped[int] = mapped_column(Integer, default=0)
+    comparable_quality_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    price_low: Mapped[Optional[float]] = mapped_column(Float)
+    price_median: Mapped[Optional[float]] = mapped_column(Float)
+    price_high: Mapped[Optional[float]] = mapped_column(Float)
+    
+    category_alignment_score: Mapped[float] = mapped_column(Float, default=0.0)
+    condition_alignment_score: Mapped[float] = mapped_column(Float, default=0.0)
+    attribute_alignment_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    competition_proxy: Mapped[Optional[str]] = mapped_column(String(50))
+    demand_proxy: Mapped[Optional[str]] = mapped_column(String(50))
+    market_confidence: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    unsafe_reasons_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    review_required: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    evidence_summary: Mapped[str] = mapped_column(Text, default='')
+    
+    search_queries_used_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    raw_result_count: Mapped[int] = mapped_column(Integer, default=0)
+    filtered_result_count: Mapped[int] = mapped_column(Integer, default=0)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class MarketEvaluationEvidenceModel(Base):
+    __tablename__ = 'market_evaluation_evidences'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    evidence_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    candidate_id: Mapped[str] = mapped_column(String(255), ForeignKey('canonical_product_candidates.candidate_id'), index=True)
+    
+    search_request_payload_json: Mapped[Dict[str, Any]] = mapped_column(JSON)
+    provider_name: Mapped[str] = mapped_column(String(50))
+    
+    comparable_listing_ids_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    excluded_listing_ids_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    unsafe_reasons_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    evidence_lines_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    
+    raw_response_reference: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+
+class ProfitabilityScoreModel(Base):
+    __tablename__ = 'profitability_scores'
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    profitability_score_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    candidate_id: Mapped[str] = mapped_column(String(255), ForeignKey('canonical_product_candidates.candidate_id'), index=True)
+    market_evaluation_id: Mapped[Optional[str]] = mapped_column(String(255), ForeignKey('market_evaluation_results.market_evaluation_id'), index=True)
+    
+    scoring_status: Mapped[str] = mapped_column(String(50), index=True)
+    decision_status: Mapped[str] = mapped_column(String(50), index=True)
+    review_required: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    
+    expected_sale_price_low: Mapped[Optional[float]] = mapped_column(Float)
+    expected_sale_price_base: Mapped[Optional[float]] = mapped_column(Float)
+    expected_sale_price_high: Mapped[Optional[float]] = mapped_column(Float)
+    
+    expected_net_profit: Mapped[float] = mapped_column(Float, default=0.0)
+    expected_margin: Mapped[float] = mapped_column(Float, default=0.0)
+    expected_roi: Mapped[float] = mapped_column(Float, default=0.0)
+    
+    confidence_multiplier: Mapped[float] = mapped_column(Float, default=1.0)
+    confidence_adjusted_profit: Mapped[float] = mapped_column(Float, default=0.0, index=True)
+    profitability_score: Mapped[float] = mapped_column(Float, default=0.0, index=True)
+    
+    decision_reason: Mapped[str] = mapped_column(Text, default='')
+    unsafe_reasons_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    explanation_lines_json: Mapped[List[str]] = mapped_column(JSON, default=list)
+    
+    components_json: Mapped[Dict[str, float]] = mapped_column(JSON, default=dict)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
