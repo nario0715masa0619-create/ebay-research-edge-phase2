@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 
 from src.ebay.models import ProductCandidate, EbayListing, CandidateEvidence, MonitoringEvent
 from src.ebay.api_client import EbayInventoryApiClient
-from .models import ListingSyncRequest, ListingSyncResult, ListingSyncBatchResult
+from .old_models import ListingSyncRequest, ListingSyncResult, ListingSyncBatchResult
 from .target_selector import SyncTargetSelector
 from .state_fetcher import EbayStateFetcher
 from .comparator import StateComparator

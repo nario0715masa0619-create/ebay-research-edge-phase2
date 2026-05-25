@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from src.ebay.models import ProductCandidate
-from .models import ListingSyncRequest
+from .old_models import ListingSyncRequest
 
 class RecoveryDecisionEngine:
     def decide(self, request: ListingSyncRequest, candidate: ProductCandidate, comparison: Dict[str, Any], remote_state: Dict[str, Any]) -> Dict[str, Any]:
