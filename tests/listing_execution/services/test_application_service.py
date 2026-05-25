@@ -150,3 +150,97 @@ def test_app_service_manual_rollback(app_service, valid_payload, repo, candidate
     db_attempt = repo.get_by_id("att_001")
     assert db_attempt.status == "rolled_back"
     assert "User testing rollback" in db_attempt.error_message
+
+def test_execute_with_live_gateway_dry_run_uses_mock(app_service, valid_payload, repo, candidate_data, seller_data, handoff_data):
+    valid_payload.dry_run = True
+    valid_payload.sku = "sku_success"
+    
+    result = app_service.execute_with_live_gateway(
+        payload=valid_payload, 
+        credentials=None,
+        candidate_data=candidate_data, 
+        seller_data=seller_data, 
+        handoff_data=handoff_data
+    )
+    print("DEBUG result: ", result)
+    assert result["status"] == "success"
+    assert result["dry_run"] is True
+    
+    # DB unchanged
+    assert repo.get_by_id("att_001") is None
+    
+    # Audit log from sync service / monitor
+    assert len(app_service.monitor._audit_logs) == 0  # No alert generated on success
+
+def test_execute_with_live_gateway_live_no_credentials_fails(app_service, valid_payload, repo, candidate_data, seller_data, handoff_data):
+    valid_payload.dry_run = False
+    
+    result = app_service.execute_with_live_gateway(
+        payload=valid_payload, 
+        credentials=None,
+        candidate_data=candidate_data, 
+        seller_data=seller_data, 
+        handoff_data=handoff_data
+    )
+    
+    assert result["status"] == "failed"
+    assert result["action"] == "CANCEL"
+    assert "Missing credentials" in result["error_reason"]
+
+def test_execute_with_live_gateway_sync_conflict(app_service, valid_payload, repo, candidate_data, seller_data, handoff_data):
+    valid_payload.dry_run = False
+    valid_payload.sku = "sku_success"
+    
+    # Create fake active listing to cause conflict when success mock returns!
+    from src.listing_sync.models.listing_state import ListingState
+    # Let's mock the sync service to raise an exception
+    import pytest
+    def mock_sync(*args, **kwargs):
+        raise Exception("StateConflictError: listing already active")
+    app_service.sync_service.sync_execution_to_listing = mock_sync
+    
+    result = app_service.execute_with_live_gateway(
+        payload=valid_payload, 
+        credentials={"auth_token": "foo"},
+        candidate_data=candidate_data, 
+        seller_data=seller_data, 
+        handoff_data=handoff_data
+    )
+    
+    assert result["status"] == "failed"
+    assert "StateConflictError" in result["error_reason"]
+    
+    # Monitor should have logged this!
+    assert len(app_service.monitor._audit_logs) >= 1
+    assert app_service.monitor._audit_logs[0]["alert_level"] == "CRITICAL"
+
+def test_execute_with_live_gateway_failure_monitor_alerts(app_service, valid_payload, repo, candidate_data, seller_data, handoff_data):
+    valid_payload.dry_run = False
+    valid_payload.sku = "sku_timeout" # Will use MockExecutor to fail with timeout
+    
+    # In live flow, unless dry_run, it uses LiveExecutor if credentials are provided
+    # Let's mock LiveExecutor.execute
+    from unittest.mock import patch
+    with patch("src.listing_execution.executors.live_executor.LiveExecutor.execute") as mock_exec:
+        from src.listing_execution.gateways.execution_gateway import ExecutionResult
+        mock_exec.return_value = ExecutionResult(
+            status="failed", listing_id="lst_001", attempt_id="att_001",
+            error_reason="Connection Timeout", executed_at=datetime.now(timezone.utc)
+        )
+        # Also need to mock validate
+        with patch("src.listing_execution.executors.live_executor.LiveExecutor.validate") as mock_val:
+            from src.listing_execution.gateways.execution_gateway import ValidationResult
+            mock_val.return_value = ValidationResult(is_valid=True, error_messages=[])
+
+            result = app_service.execute_with_live_gateway(
+                payload=valid_payload, 
+                credentials={"auth_token": "foo"},
+                candidate_data=candidate_data, 
+                seller_data=seller_data, 
+                handoff_data=handoff_data
+            )
+            
+            assert result["status"] == "failed"
+            # Connection Timeout gets UNKNOWN boundary if not parsed, let's see
+            # alert history
+            assert len(app_service.monitor._audit_logs) >= 1

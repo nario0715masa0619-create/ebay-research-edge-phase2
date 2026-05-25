@@ -8,6 +8,11 @@ from src.listing_execution.services.retry_manager import ExecutionRetryManager, 
 from src.listing_readiness.services.readiness_checker import ReadinessChecker, ReadinessResult
 from src.listing_execution.repositories.execution_attempt_repository import ExecutionAttemptRepository
 from src.listing_execution.models.execution_state import ExecutionState
+from src.listing_execution.executors.mock_executor import MockExecutor
+from src.listing_execution.executors.live_executor import LiveExecutor
+from src.listing_execution.gateways.ebay_api_gateway import EBayApiGateway
+from src.listing_execution.services.listing_sync_service import ListingSyncService
+from src.monitoring.services.execution_monitor import ExecutionMonitor
 
 class ExecutionApplicationService:
     """
@@ -25,6 +30,8 @@ class ExecutionApplicationService:
         self.readiness_checker = readiness_checker
         self.repository = repository
         self.retry_manager = retry_manager or ExecutionRetryManager()
+        self.sync_service = ListingSyncService()
+        self.monitor = ExecutionMonitor(repository=None)
 
     def check_readiness(self, candidate_data: Dict[str, Any], seller_data: Dict[str, Any], handoff_data: Dict[str, Any]) -> ReadinessResult:
         """Thin wrapper to execute readiness checklist."""
@@ -128,6 +135,147 @@ class ExecutionApplicationService:
                 payload, state_machine, str(e), current_attempt_number
             )
 
+    def execute_with_live_gateway(
+        self,
+        payload: ExecutionPayload,
+        credentials: Optional[Dict[str, str]],
+        candidate_data: Dict[str, Any],
+        seller_data: Dict[str, Any],
+        handoff_data: Dict[str, Any],
+        current_attempt_number: int = 1
+    ) -> Dict[str, Any]:
+        """
+        End-to-end execution flow with Live/Mock selection based on dry_run and credentials.
+        Also integrates ListingSyncService and ExecutionMonitor.
+        """
+        # Step 1: Readiness
+        readiness_result = self.check_readiness(candidate_data, seller_data, handoff_data)
+        state_machine = ExecutionStateMachine()
+
+        try:
+            state_machine.initiate(readiness_result, initiated_by="system_execution")
+
+            if not payload.dry_run:
+                self.repository.create_attempt({
+                    "attempt_id": payload.attempt_id,
+                    "listing_id": payload.listing_id,
+                    "candidate_id": candidate_data.get("candidate_id"),
+                    "handoff_id": handoff_data.get("handoff_id"),
+                    "seller_account_id": payload.seller,
+                    "environment": payload.environment,
+                    "status": ExecutionState.executing.value,
+                    "payload_json": payload.to_dict(),
+                    "retry_count": current_attempt_number - 1
+                })
+
+            # Select Executor
+            if payload.dry_run:
+                executor = MockExecutor(
+                    allowed_environments=[payload.environment],
+                    allowed_sellers=[payload.seller],
+                    fixture_rules={}
+                )
+            elif not credentials:
+                # Invalid credentials -> reject
+                from src.listing_execution.gateways.execution_gateway import ExecutionResult
+                res = ExecutionResult(
+                    status="failed",
+                    listing_id=payload.listing_id,
+                    attempt_id=payload.attempt_id,
+                    error_reason="Missing credentials for live execution",
+                    executed_at=datetime.now(timezone.utc)
+                )
+                state_machine.complete(res, initiated_by="system_execution")
+                return self._handle_e2e_failure(payload, state_machine, res, current_attempt_number, is_validation_failure=True)
+            else:
+                executor = LiveExecutor(
+                    api_gateway=EBayApiGateway(credentials),
+                    allowed_environments=[payload.environment],
+                    allowed_sellers=[payload.seller]
+                )
+
+            # Validate and Execute
+            val_result = executor.validate(payload, credentials)
+            if not val_result.is_valid:
+                from src.listing_execution.gateways.execution_gateway import ExecutionResult
+                res = ExecutionResult(
+                    status="failed",
+                    listing_id=payload.listing_id,
+                    attempt_id=payload.attempt_id,
+                    error_reason=", ".join(val_result.error_messages),
+                    executed_at=datetime.now(timezone.utc)
+                )
+                state_machine.complete(res, initiated_by="system_execution")
+                return self._handle_e2e_failure(payload, state_machine, res, current_attempt_number, is_validation_failure=True)
+
+            exec_result = executor.execute(payload, credentials)
+            state_machine.complete(exec_result, initiated_by="system_execution")
+
+            # Monitoring
+            if exec_result.status == "failed":
+                return self._handle_e2e_failure(payload, state_machine, exec_result, current_attempt_number)
+
+            # Success -> Sync
+            try:
+                self.sync_service.sync_execution_to_listing(exec_result, payload.listing_id, payload.dry_run)
+            except Exception as e:
+                # Conflict or sync error
+                exec_result.status = "failed"
+                exec_result.error_reason = str(e)
+                self.sync_service.handle_rollback(exec_result.attempt_id, exec_result.listing_id, payload.dry_run)
+                return self._handle_e2e_failure(payload, state_machine, exec_result, current_attempt_number)
+
+            if not payload.dry_run:
+                self.repository.update_status(
+                    attempt_id=payload.attempt_id,
+                    status=ExecutionState.executed.value,
+                    finished_at=datetime.now(timezone.utc)
+                )
+
+            return {
+                "attempt_id": payload.attempt_id,
+                "status": "success",
+                "state": state_machine.current_state.value,
+                "dry_run": payload.dry_run,
+                "listing_id": payload.listing_id
+            }
+
+        except ReadinessThresholdNotMetError as e:
+            return {
+                "attempt_id": payload.attempt_id,
+                "status": "rejected",
+                "state": ExecutionState.ready_for_execution.value,
+                "error_reason": str(e),
+                "dry_run": payload.dry_run
+            }
+        except Exception as e:
+            from src.listing_execution.gateways.execution_gateway import ExecutionResult
+            res = ExecutionResult(status="failed", listing_id=payload.listing_id, attempt_id=payload.attempt_id, error_reason=str(e), executed_at=datetime.now(timezone.utc))
+            if state_machine.current_state == ExecutionState.executing:
+                state_machine.complete(res, initiated_by="system_execution")
+            return self._handle_e2e_failure(payload, state_machine, res, current_attempt_number)
+
+    def _handle_e2e_failure(self, payload, state_machine, exec_result, current_attempt_number, is_validation_failure=False):
+        # Sync Service failure handling
+        try:
+            self.sync_service.handle_execution_failure(exec_result, exec_result.listing_id, payload.dry_run)
+        except Exception:
+            pass
+            
+        failure_response = self._handle_execution_failure(payload, state_machine, exec_result.error_reason, current_attempt_number, is_validation_failure)
+        
+        # Monitoring integration
+        attempt_history = {
+            "failure_boundary": failure_response.get("failure_boundary", "UNKNOWN"),
+            "retry_count": current_attempt_number - 1,
+            "max_attempts": 3,
+            "next_retry_at": failure_response.get("next_retry_at"),
+            "is_cancelled": failure_response.get("action") == RetryAction.CANCEL.value
+        }
+        self.monitor.process_execution_result(exec_result, payload.listing_id, attempt_history, dry_run=payload.dry_run)
+        
+        return failure_response
+
     def _handle_execution_failure(
         self, 
         payload: ExecutionPayload, 
@@ -176,7 +324,8 @@ class ExecutionApplicationService:
             "retry_decision": reason,
             "next_attempt_number": next_attempt_number,
             "next_retry_at": next_retry_at.isoformat() if next_retry_at else None,
-            "dry_run": payload.dry_run
+            "dry_run": payload.dry_run,
+            "failure_boundary": failure_boundary
         }
 
     def get_attempt_status(self, attempt_id: str) -> Optional[Dict[str, Any]]:

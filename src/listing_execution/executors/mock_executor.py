@@ -23,7 +23,7 @@ class MockExecutor(ExecutionGateway):
     def supports_environment(self, env: str) -> bool:
         return env in self.allowed_environments
 
-    def validate(self, payload: ExecutionPayload) -> ValidationResult:
+    def validate(self, payload: ExecutionPayload, credentials: Dict[str, Any] = None) -> ValidationResult:
         errors = []
         if not self.supports_environment(payload.environment):
             errors.append(f"Environment '{payload.environment}' is not supported.")
@@ -36,9 +36,9 @@ class MockExecutor(ExecutionGateway):
             error_messages=errors
         )
 
-    def execute(self, payload: ExecutionPayload) -> ExecutionResult:
+    def execute(self, payload: ExecutionPayload, credentials: Dict[str, Any] = None) -> ExecutionResult:
         # Mandatory Guard Check
-        val_result = self.validate(payload)
+        val_result = self.validate(payload, credentials)
         if not val_result.is_valid:
             return ExecutionResult(
                 status="error",
