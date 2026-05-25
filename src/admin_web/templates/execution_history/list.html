@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Execution History</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5rem; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }
+        .filter-form { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 6px; }
+        .filter-form input, .filter-form select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .filter-form button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eaeaea; }
+        th { background-color: #f1f1f1; }
+        tr:hover { background-color: #f9f9f9; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+        .badge.dry-run { background: #e0e0e0; color: #555; }
+        .badge.live { background: #d4edda; color: #155724; }
+        .badge.error { background: #f8d7da; color: #721c24; }
+        .pagination { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
+        .pagination a { text-decoration: none; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; color: #007bff; }
+        .pagination a:hover { background: #f1f1f1; }
+        a.action-link { color: #007bff; text-decoration: none; margin-right: 10px; }
+        a.action-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Execution History</h1>
+    
+    <form class="filter-form" method="GET" action="/execution/history">
+        <input type="text" name="attempt_id" placeholder="Attempt ID" value="{{ filters.attempt_id }}">
+        <input type="text" name="listing_id" placeholder="Listing ID" value="{{ filters.listing_id }}">
+        <input type="text" name="seller_account_id" placeholder="Seller ID" value="{{ filters.seller_account_id }}">
+        <input type="text" name="environment" placeholder="Environment" value="{{ filters.environment }}">
+        <input type="text" name="event_type" placeholder="Event Type" value="{{ filters.event_type }}">
+        <select name="dry_run">
+            <option value="">Any Run Mode</option>
+            <option value="True" {% if filters.dry_run == 'True' %}selected{% endif %}>Dry Run</option>
+            <option value="False" {% if filters.dry_run == 'False' %}selected{% endif %}>Live</option>
+        </select>
+        <input type="date" name="from_date" value="{{ filters.from_date }}">
+        <input type="date" name="to_date" value="{{ filters.to_date }}">
+        <button type="submit">Filter</button>
+        <a href="/execution/history" class="action-link" style="padding: 8px 15px;">Clear</a>
+        <a href="/execution/dashboard" class="action-link" style="padding: 8px 15px; margin-left: auto; font-weight: bold;">View Dashboard</a>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Created At</th>
+                <th>Attempt ID</th>
+                <th>Listing ID</th>
+                <th>Event Type</th>
+                <th>Mode</th>
+                <th>Error Code</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M:%S') if item.created_at else '' }}</td>
+                <td>{{ item.attempt_id }}</td>
+                <td>{{ item.listing_id }}</td>
+                <td>{{ item.event_type }}</td>
+                <td>
+                    <span class="badge {{ 'dry-run' if item.dry_run else 'live' }}">
+                        {{ 'Dry Run' if item.dry_run else 'Live' }}
+                    </span>
+                </td>
+                <td>
+                    {% if item.error_code %}
+                    <span class="badge error">{{ item.error_code }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/execution/history/attempt/{{ item.attempt_id }}" class="action-link">View Attempt</a>
+                    <a href="/execution/history/listing/{{ item.listing_id }}" class="action-link">View Listing</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No history events found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="/execution/history?page={{ page - 1 }}&attempt_id={{ filters.attempt_id }}&listing_id={{ filters.listing_id }}&event_type={{ filters.event_type }}">&laquo; Prev</a>
+        {% endif %}
+        <span style="padding: 8px 12px;">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="/execution/history?page={{ page + 1 }}&attempt_id={{ filters.attempt_id }}&listing_id={{ filters.listing_id }}&event_type={{ filters.event_type }}">Next &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

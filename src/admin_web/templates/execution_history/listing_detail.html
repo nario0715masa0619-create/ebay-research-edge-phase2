@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Listing History - {{ listing_id }}</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5rem; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }
+        .attempt-section { margin-bottom: 30px; border: 1px solid #eaeaea; border-radius: 8px; padding: 15px; background: #fafafa; }
+        .attempt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eaeaea; padding-bottom: 10px; margin-bottom: 10px; }
+        .attempt-header h2 { margin: 0; font-size: 1.2rem; }
+        .event-list { list-style: none; padding: 0; margin: 0; }
+        .event-item { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; font-size: 0.9em; }
+        .event-item:last-child { border-bottom: none; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+        .badge.dry-run { background: #e0e0e0; color: #555; }
+        .badge.live { background: #d4edda; color: #155724; }
+        .badge.error { background: #f8d7da; color: #721c24; }
+        .nav-links { margin-bottom: 20px; }
+        .nav-links a { color: #007bff; text-decoration: none; margin-right: 15px; font-weight: bold; }
+        a.action-link { color: #007bff; text-decoration: none; }
+        a.action-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav-links">
+        <a href="/execution/history">&laquo; Back to History</a>
+        <a href="/execution/dashboard">Dashboard</a>
+    </div>
+    
+    <h1>Listing History: {{ listing_id }}</h1>
+
+    {% for attempt_id, events in attempts %}
+    <div class="attempt-section">
+        <div class="attempt-header">
+            <h2>Attempt: <a href="/execution/history/attempt/{{ attempt_id }}" class="action-link">{{ attempt_id }}</a></h2>
+            <div>
+                <span class="badge {{ 'dry-run' if events[0].dry_run else 'live' }}">{{ 'Dry Run' if events[0].dry_run else 'Live' }}</span>
+                <span style="font-size: 0.8em; color: #666; margin-left: 10px;">{{ events[0].created_at.strftime('%Y-%m-%d %H:%M:%S') if events[0].created_at else '' }}</span>
+            </div>
+        </div>
+        <ul class="event-list">
+            {% for event in events %}
+            <li class="event-item">
+                <span>
+                    <strong>{{ event.event_type }}</strong>
+                    {% if event.error_code %} <span class="badge error">{{ event.error_code }}</span> {% endif %}
+                </span>
+                <span style="color: #999;">{{ event.created_at.strftime('%H:%M:%S') if event.created_at else '' }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <p>No history found for this listing.</p>
+    {% endfor %}
+</div>
+</body>
+</html>

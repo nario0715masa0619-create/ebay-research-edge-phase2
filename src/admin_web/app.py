@@ -105,6 +105,7 @@ from src.admin_web.routes.discovery_review import router as discovery_review_rou
 from src.admin_web.routes.notifications import router as notifications_router
 from src.admin_web.routes.escalation import router as escalation_router
 from src.admin_web.routes.doctor import router as doctor_router
+from src.admin_web.routes.execution_history import router as execution_history_router
 
 # Include routers
 app.include_router(dashboard_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
@@ -117,3 +118,4 @@ app.include_router(discovery_review_router, prefix="/admin", dependencies=[Depen
 app.include_router(notifications_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
 app.include_router(escalation_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
 app.include_router(doctor_router, prefix="/admin", dependencies=[Depends(authenticate_user)])
+app.include_router(execution_history_router, prefix="", dependencies=[Depends(authenticate_user)])

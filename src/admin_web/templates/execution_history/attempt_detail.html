@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attempt Detail - {{ attempt_id }}</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.5rem; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .timeline { position: relative; max-width: 800px; margin: 20px auto; }
+        .timeline::after { content: ''; position: absolute; width: 4px; background-color: #eaeaea; top: 0; bottom: 0; left: 20px; margin-left: -2px; }
+        .timeline-item { padding: 10px 40px; position: relative; background-color: inherit; width: 100%; box-sizing: border-box; }
+        .timeline-item::after { content: ''; position: absolute; width: 16px; height: 16px; right: auto; background-color: white; border: 4px solid #007bff; top: 15px; left: 12px; border-radius: 50%; z-index: 1; }
+        .timeline-item.error::after { border-color: #dc3545; }
+        .timeline-content { padding: 15px 25px; background-color: #f9f9f9; position: relative; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .timeline-content h3 { margin-top: 0; margin-bottom: 5px; font-size: 1.1em; }
+        .timeline-content p { margin: 5px 0; font-size: 0.9em; color: #666; }
+        .timeline-content .meta { font-size: 0.8em; color: #999; margin-top: 10px; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+        .badge.dry-run { background: #e0e0e0; color: #555; }
+        .badge.live { background: #d4edda; color: #155724; }
+        .badge.error { background: #f8d7da; color: #721c24; }
+        .badge.transition { background: #cce5ff; color: #004085; }
+        .nav-links { margin-bottom: 20px; }
+        .nav-links a { color: #007bff; text-decoration: none; margin-right: 15px; font-weight: bold; }
+        pre { background: #2c3e50; color: #fff; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav-links">
+        <a href="/execution/history">&laquo; Back to History</a>
+        {% if timeline and timeline[0] %}
+        <a href="/execution/history/listing/{{ timeline[0].listing_id }}">View Full Listing History</a>
+        {% endif %}
+    </div>
+    
+    <h1>
+        Attempt: {{ attempt_id }}
+        {% if timeline and timeline[0] %}
+        <span class="badge {{ 'dry-run' if timeline[0].dry_run else 'live' }}">{{ 'Dry Run' if timeline[0].dry_run else 'Live Execution' }}</span>
+        {% endif %}
+    </h1>
+
+    <div class="timeline">
+        {% for event in timeline %}
+        <div class="timeline-item {{ 'error' if event.error_code or event.error_message or event.event_type in ['execution_failed', 'guard_rejected'] else '' }}">
+            <div class="timeline-content">
+                <h3>
+                    {{ event.event_type }}
+                    {% if event.from_state or event.to_state %}
+                    <span class="badge transition">{{ event.from_state }} &rarr; {{ event.to_state }}</span>
+                    {% endif %}
+                </h3>
+                
+                {% if event.error_code %}
+                <p><strong>Error Code:</strong> <span class="badge error">{{ event.error_code }}</span></p>
+                {% endif %}
+                
+                {% if event.error_message %}
+                <p><strong>Message:</strong> {{ event.error_message }}</p>
+                {% endif %}
+                
+                {% if event.details %}
+                <details>
+                    <summary style="cursor: pointer; color: #007bff; font-size: 0.9em;">View Details</summary>
+                    <pre>{{ event.details | tojson(indent=2) }}</pre>
+                </details>
+                {% endif %}
+                
+                <div class="meta">
+                    Timestamp: {{ event.created_at.strftime('%Y-%m-%d %H:%M:%S') if event.created_at else '' }} | 
+                    Created By: {{ event.created_by or 'system' }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p>No events found for this attempt.</p>
+        {% endfor %}
+    </div>
+</div>
+</body>
+</html>
