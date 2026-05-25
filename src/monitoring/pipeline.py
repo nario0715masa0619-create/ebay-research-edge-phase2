@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from src.ebay.models import ProductCandidate, EbayListing, CandidateEvidence, MonitoringEvent
 from src.ebay.api_client import EbayInventoryApiClient
-from .models import MonitoringReviseRequest, MonitoringReviseResult, MonitoringReviseBatchResult
+from .old_models import MonitoringReviseRequest, MonitoringReviseResult, MonitoringReviseBatchResult
 from .source_refresher import SourceStateRefresher
 from .target_selector import MonitoringTargetSelector
 from .marketplace_sync import MarketplaceStateSync

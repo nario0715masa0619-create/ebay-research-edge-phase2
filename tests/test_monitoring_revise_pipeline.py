@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import MagicMock
 from src.ebay.models import ProductCandidate, EbayListing
 from src.monitoring.pipeline import MonitoringRevisePipeline
-from src.monitoring.models import MonitoringReviseRequest
+from src.monitoring.old_models import MonitoringReviseRequest
 from src.repositories.product_candidate_repository import ProductCandidateRepository
 from src.repositories.candidate_evidence_repository import CandidateEvidenceRepository
 from src.repositories.job_run_repository import JobRunRepository

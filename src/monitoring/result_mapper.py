@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List
 from src.ebay.models import ProductCandidate, EbayListing, MonitoringEvent
-from .models import MonitoringReviseResult
+from .old_models import MonitoringReviseResult
 
 class MonitoringResultMapper:
     def update_candidate(self, candidate: ProductCandidate, latest_source: Dict[str, Any], profit_res: Dict[str, Any]):
