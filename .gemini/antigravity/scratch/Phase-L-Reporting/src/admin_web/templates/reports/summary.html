@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h1>Summary Preview</h1>
+<form method="GET">
+    <select name="period"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
+    <input type="text" name="seller" placeholder="Seller ID">
+    <select name="environment"><option value="sandbox">Sandbox</option><option value="production">Production</option></select>
+    <input type="date" name="from_date">
+    <input type="date" name="to_date">
+    <input type="range" name="limit" min="1" max="100" value="50">
+    <select name="format"><option value="table">Table</option><option value="json">JSON</option><option value="csv">CSV</option></select>
+    <button type="submit">Filter</button>
+</form>
+<div class="preview">
+    <p>Format: {{ format }}</p>
+    {% if format == 'table' %}
+    <table>
+        {% for row in data %}
+        <tr>{% for key, val in row.items() %}<td>{{ key }}: {{ val }}</td>{% endfor %}</tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <pre>{{ data }}</pre>
+    {% endif %}
+    <p>Row count: {{ data|length if data else 0 }}</p>
+    <p>Generated at: 2026-05-26 12:00:00</p>
+    <p>Filter snapshot: ...</p>
+    
+</div>
+<!-- Read-only mode: NO modifications allowed -->
+</body>
+</html>
