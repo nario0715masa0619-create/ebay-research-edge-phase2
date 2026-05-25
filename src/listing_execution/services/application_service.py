@@ -150,7 +150,20 @@ class ExecutionApplicationService:
         """
         # Step 1: Readiness
         readiness_result = self.check_readiness(candidate_data, seller_data, handoff_data)
-        state_machine = ExecutionStateMachine()
+        
+        if self.repository:
+            self.repository.append_history_event(
+                attempt_id=payload.attempt_id,
+                event_type="readiness_passed" if readiness_result.readiness_score >= 80 else "readiness_failed",
+                dry_run=payload.dry_run,
+                details={"score": readiness_result.readiness_score, "reasons": readiness_result.readiness_reasons}
+            )
+
+        state_machine = ExecutionStateMachine(
+            attempt_id=payload.attempt_id,
+            repository=self.repository,
+            dry_run=payload.dry_run
+        )
 
         try:
             state_machine.initiate(readiness_result, initiated_by="system_execution")
@@ -175,6 +188,9 @@ class ExecutionApplicationService:
                     allowed_sellers=[payload.seller],
                     fixture_rules={}
                 )
+                if self.repository:
+                    self.repository.append_history_event(payload.attempt_id, "executor_selection", payload.dry_run, details={"mode": "mock"})
+                    self.repository.append_history_event(payload.attempt_id, "dry_run_executed", payload.dry_run)
             elif not credentials:
                 # Invalid credentials -> reject
                 from src.listing_execution.gateways.execution_gateway import ExecutionResult
@@ -193,10 +209,17 @@ class ExecutionApplicationService:
                     allowed_environments=[payload.environment],
                     allowed_sellers=[payload.seller]
                 )
+                if self.repository:
+                    self.repository.append_history_event(payload.attempt_id, "executor_selection", payload.dry_run, details={"mode": "live"})
 
             # Validate and Execute
             val_result = executor.validate(payload, credentials)
             if not val_result.is_valid:
+                if self.repository:
+                    self.repository.append_history_event(
+                        payload.attempt_id, "guard_rejected", payload.dry_run, 
+                        error_message=", ".join(val_result.error_messages)
+                    )
                 from src.listing_execution.gateways.execution_gateway import ExecutionResult
                 res = ExecutionResult(
                     status="failed",
@@ -208,6 +231,9 @@ class ExecutionApplicationService:
                 state_machine.complete(res, initiated_by="system_execution")
                 return self._handle_e2e_failure(payload, state_machine, res, current_attempt_number, is_validation_failure=True)
 
+            if self.repository:
+                self.repository.append_history_event(payload.attempt_id, "gateway_validated", payload.dry_run)
+
             exec_result = executor.execute(payload, credentials)
             state_machine.complete(exec_result, initiated_by="system_execution")
 
@@ -218,6 +244,11 @@ class ExecutionApplicationService:
             # Success -> Sync
             try:
                 self.sync_service.sync_execution_to_listing(exec_result, payload.listing_id, payload.dry_run)
+                if self.repository:
+                    self.repository.append_history_event(
+                        payload.attempt_id, "listing_state_changed", payload.dry_run,
+                        details={"synced": True}
+                    )
             except Exception as e:
                 # Conflict or sync error
                 exec_result.status = "failed"
@@ -272,7 +303,14 @@ class ExecutionApplicationService:
             "next_retry_at": failure_response.get("next_retry_at"),
             "is_cancelled": failure_response.get("action") == RetryAction.CANCEL.value
         }
-        self.monitor.process_execution_result(exec_result, payload.listing_id, attempt_history, dry_run=payload.dry_run)
+        
+        alert = self.monitor.process_execution_result(exec_result, payload.listing_id, attempt_history, dry_run=payload.dry_run)
+        
+        if self.repository and alert:
+            self.repository.append_history_event(
+                payload.attempt_id, "alert_created", payload.dry_run,
+                details={"alert_level": alert.alert_level.value if hasattr(alert.alert_level, "value") else str(alert.alert_level)}
+            )
         
         return failure_response
 
@@ -304,6 +342,18 @@ class ExecutionApplicationService:
 
         # Rollback execution scope if it's retryable or cancelled
         self.retry_manager.safely_rollback_execution_scope(state_machine, payload.attempt_id, reason)
+        
+        if self.repository:
+            if action == RetryAction.RETRY_LATER:
+                self.repository.append_history_event(
+                    payload.attempt_id, "retry_scheduled", payload.dry_run,
+                    details={"next_attempt": next_attempt_number, "retry_at": next_retry_at.isoformat() if next_retry_at else None}
+                )
+            else:
+                self.repository.append_history_event(
+                    payload.attempt_id, "retry_cancelled", payload.dry_run,
+                    details={"reason": reason}
+                )
 
         if not payload.dry_run:
             self.repository.update_status(

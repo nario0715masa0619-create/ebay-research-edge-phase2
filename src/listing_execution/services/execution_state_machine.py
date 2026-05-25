@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timezone
 from src.listing_execution.models.execution_state import (
     ExecutionState, 
@@ -8,11 +8,15 @@ from src.listing_execution.models.execution_state import (
 )
 from src.listing_readiness.services.readiness_checker import ReadinessResult
 from src.listing_execution.models.results import ExecutionResult
+from src.listing_execution.repositories.execution_attempt_repository import ExecutionAttemptRepository
 
 class ExecutionStateMachine:
-    def __init__(self):
+    def __init__(self, attempt_id: Optional[str] = None, repository: Optional[ExecutionAttemptRepository] = None, dry_run: bool = False):
         self._current_state = ExecutionState.ready_for_execution
         self._transitions: List[ExecutionTransition] = []
+        self._attempt_id = attempt_id
+        self._repository = repository
+        self._dry_run = dry_run
 
     @property
     def current_state(self) -> ExecutionState:
@@ -47,7 +51,27 @@ class ExecutionStateMachine:
             initiated_by=initiated_by
         )
         self._transitions.append(transition)
+        
+        from_state_val = self._current_state.value
+        to_state_val = to_state.value
         self._current_state = to_state
+
+        if self._repository and self._attempt_id:
+            event_type_map = {
+                "executing": "execution_started",
+                "executed": "execution_succeeded",
+                "failed": "execution_failed",
+                "rolled_back": "rollback_executed"
+            }
+            event_type = event_type_map.get(to_state_val, "unknown_state_change")
+            self._repository.append_history_event(
+                attempt_id=self._attempt_id,
+                event_type=event_type,
+                dry_run=self._dry_run,
+                from_state=from_state_val,
+                to_state=to_state_val,
+                details={"reason": reason, "initiated_by": initiated_by}
+            )
 
     def initiate(self, readiness_result: ReadinessResult, initiated_by: str = "system") -> ExecutionState:
         """

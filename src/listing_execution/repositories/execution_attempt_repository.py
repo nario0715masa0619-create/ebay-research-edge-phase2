@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from src.db.models import ExecutionAttemptModel
+from src.listing_execution.models.execution_history import ExecutionHistoryModel
 
 class ExecutionAttemptRepository:
     def __init__(self, session: Session):
@@ -87,3 +88,39 @@ class ExecutionAttemptRepository:
             
         self.session.commit()
         return model
+
+    def append_history_event(
+        self,
+        attempt_id: str,
+        event_type: str,
+        dry_run: bool = False,
+        from_state: Optional[str] = None,
+        to_state: Optional[str] = None,
+        error_code: Optional[str] = None,
+        error_message: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        created_by: str = "system"
+    ) -> ExecutionHistoryModel:
+        """
+        Append a history event natively inside the current session.
+        If an attempt exists, listing_id is inferred from it.
+        """
+        attempt = self.get_by_id(attempt_id)
+        listing_id = attempt.listing_id if attempt else "unknown"
+
+        history_model = ExecutionHistoryModel(
+            attempt_id=attempt_id,
+            listing_id=listing_id,
+            event_type=event_type,
+            dry_run=dry_run,
+            from_state=from_state,
+            to_state=to_state,
+            error_code=error_code,
+            error_message=error_message,
+            details=details,
+            created_at=datetime.now(timezone.utc),
+            created_by=created_by
+        )
+        self.session.add(history_model)
+        self.session.commit()
+        return history_model
