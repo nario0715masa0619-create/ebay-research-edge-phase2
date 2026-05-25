@@ -798,3 +798,5 @@ class ExecutionAttemptModel(Base):
     scheduler_run_id = Column(String, nullable=True)
     batch_id = Column(String, nullable=True)
 
+from src.listing_execution.models.execution_history import ExecutionHistoryModel
+
