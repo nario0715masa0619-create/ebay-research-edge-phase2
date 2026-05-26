@@ -300,3 +300,19 @@ Phase M / Phase N で蓄積された Incident や Policy の情報を元に、�
 
 3. **ダッシュボード集計**
    - **`LearningDashboardService`**: 上記サービスのデータを統合し、運用者がシステムの学習・改善状況を一目で把握できるサマリデータ (LearningSummary, FalseSignalSummary, RecurringIssueCluster) を生成します。
+
+### Wave 3 実装内容
+構築した Learning Services 群をコマンドラインから簡単に操作・照会するための CLI インターフェースを実装しました。
+
+- **CLI コマンド一覧**
+  - `candidate-scan`: システムログやインシデントから新たな学習候補 (Candidate) をスキャンして一覧表示します。
+  - `list`: 既存の Learning Record の一覧を表示し、ステータス、原因カテゴリ、セラー等でフィルタリング可能です。
+  - `show`: 特定の Learning Record の詳細、それに紐づく RCA (根本原因分析)、および提案 (Recommendations) を表示します。
+  - `create-from-incident`: 既存のインシデント ID から新規の Learning Record を生成します。
+  - `add-rca` / `add-recommendation`: レコードに対して根本原因の分析情報や具体的なシステム改善提案を追記します。
+  - `close`: レコードの分析を完了し状態を CLOSED に移行します。
+  - `recurring` / `false-signals`: 再発している問題のクラスタや、過剰検知/検知漏れの傾向をリスト化して運用者に提示します。
+  - `recommendations` / `approve-recommendation` / `reject-recommendation`: システム改善提案のレビューキューを管理し、承認ワークフローを実行します。
+  - `dashboard` / `digest`: 現在の学習状況のサマリビューや、Markdown 形式のダイジェストレポートを生成します。
+
+出力フォーマットはすべて `table`, `json`, `csv` に対応しており、他ツール連携や自動化スクリプトでの活用が容易な設計となっています。

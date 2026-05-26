@@ -115,7 +115,13 @@
 - [x] git commit & push
 
 ### Wave 2 Tasks
-- [ ] 6 Services (Candidate, Recommendation, Effectiveness, Recurring, FalseSignal, Dashboard)
-- [ ] テスト追加（30件以上）
+- [x] 6 Services (Candidate, Recommendation, Effectiveness, Recurring, FalseSignal, Dashboard)
+- [x] テスト追加（30件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 3 Tasks
+- [ ] CLI コマンド (13+)
+- [ ] テスト追加（20件以上）
 - [ ] task.md / walkthrough.md 更新
 - [ ] git commit & push
