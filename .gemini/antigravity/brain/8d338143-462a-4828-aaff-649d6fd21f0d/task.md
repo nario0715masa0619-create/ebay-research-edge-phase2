@@ -90,8 +90,17 @@
 - [x] git commit & push
 
 ### Wave 5 Tasks
-- [ ] Web routes (6+) 実装
-- [ ] Jinja2 templates (6) 実装
-- [ ] テスト追加（20件以上）
-- [ ] task.md / walkthrough.md 更新
+- [x] Web routes (6+) 実装
+- [x] Jinja2 templates (6) 実装
+- [x] テスト追加（20件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 6 Tasks
+- [ ] Alembic migration (ops_policies table)
+- [ ] ORM model (OpsPolicyModel)
+- [ ] DB repositories
+- [ ] Orchestrator jobs (3)
+- [ ] テスト追加（25件以上）
+- [ ] Phase N 最終ドキュメント作成
 - [ ] git commit & push

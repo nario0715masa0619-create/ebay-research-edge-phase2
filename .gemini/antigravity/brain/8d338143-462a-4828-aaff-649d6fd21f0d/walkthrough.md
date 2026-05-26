@@ -253,3 +253,18 @@ CLI に続き、運用担当者が視覚的にポリシーを管理できる Web
    - `STRONG` レベルのポリシーを承認する際の `review_due` 入力フィールド制御。
    - 処理の成功/失敗を伝えるフラッシュメッセージ機構 (`get_flashed_messages()`) の導入。
    - 誤操作防止の観点から、既存ポリシーは直接編集 (UPDATE/DELETE) させず、すべて Status 変更と Append-only の監査ノートで追跡するリードオンリー/追記型デザインを採用しています。
+
+### Wave 6 実装内容 (Phase N 最終波)
+最後に、これまでインメモリで管理していたポリシー情報を RDBMS 上に永続化するための DB スキーマと ORM、および定期ジョブを実装し、Phase N を完了させました。
+
+1. **DB 永続化基盤**
+   - **Alembic マイグレーション**: `ops_policies` テーブルと、履歴を管理する `ops_policy_events` テーブルを作成するマイグレーションスクリプトを定義しました。JSON データの保存には互換性のための JSON カラムを採用しています。
+   - **ORM Model**: `OpsPolicyModel` および `OpsPolicyEventModel` を追加し、リレーションシップを設定しました。
+   - **DB Repositories**: インメモリ管理だったサービス層を DB バックエンドに切り替えるため、`OpsPolicyRepository` と `OpsPolicyEventRepository` を実装し、必要な CRUD 処理と Append-only 要件を満たしました。
+
+2. **Orchestrator ジョブ (3種)**
+   - **PolicyCandidateScanJob**: 定期的に `IncidentDetectionService` を呼び出し、新たなポリシー候補をスキャンします。
+   - **PolicyExpiryJob**: `effective_until` を超過したポリシーをチェックし、自動的に `EXPIRED` 状態へ移行させます。
+   - **PolicyReviewDueScanJob**: 承認済みだがレビュー期限 (`review_due_at`) を過ぎたポリシーを検出し、アラート用に抽出します。
+
+**Phase N 全体の詳細な設計とまとめは、`docs/phase-n-seller-ops-policy-implementation.md` に記載されています。**
