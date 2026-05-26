@@ -96,11 +96,20 @@
 - [x] task.md / walkthrough.md 更新
 - [x] git commit & push
 
-### Wave 6 Tasks
-- [ ] Alembic migration (ops_policies table)
-- [ ] ORM model (OpsPolicyModel)
-- [ ] DB repositories
-- [ ] Orchestrator jobs (3)
+### Wave 6 Tasks (Phase N 完了)
+- [x] Alembic migration (ops_policies table)
+- [x] ORM model (OpsPolicyModel)
+- [x] DB repositories
+- [x] Orchestrator jobs (3)
+- [x] テスト追加（25件以上）
+- [x] Phase N 最終ドキュメント作成
+- [x] git commit & push
+
+## Phase O: Continuous Learning & Feedback Loop
+
+### Wave 1 Tasks
+- [ ] 4 DTOs (LearningRecord, RootCauseAnalysis, LearningRecommendation, LearningCandidate)
+- [ ] 2 Services (LearningRecordService, RootCauseAnalysisService)
 - [ ] テスト追加（25件以上）
-- [ ] Phase N 最終ドキュメント作成
+- [ ] task.md / walkthrough.md 更新
 - [ ] git commit & push

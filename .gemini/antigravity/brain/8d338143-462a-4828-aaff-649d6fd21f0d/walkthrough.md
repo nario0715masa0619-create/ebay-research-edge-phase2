@@ -268,3 +268,20 @@ CLI に続き、運用担当者が視覚的にポリシーを管理できる Web
    - **PolicyReviewDueScanJob**: 承認済みだがレビュー期限 (`review_due_at`) を過ぎたポリシーを検出し、アラート用に抽出します。
 
 **Phase N 全体の詳細な設計とまとめは、`docs/phase-n-seller-ops-policy-implementation.md` に記載されています。**
+
+## Phase O: Continuous Learning & Feedback Loop
+
+### Wave 1 実装内容
+Phase M / Phase N で蓄積された Incident や Policy の情報を元に、システムの継続的改善を支援するための「学習ループ (Learning Loop)」を定義する基本的なデータモデル (DTO) とサービスを実装しました。
+
+1. **データモデル (DTOs)**
+   - **`LearningRecord`**: 一連のアラートやインシデントから得られた「学び」を記録する中心となるモデル。根本原因 (`RootCauseCategory`)、影響範囲 (`ImpactScope`)、効果測定 (`EffectivenessRating`) などを保持し、追跡可能な状態 (`LearningRecordStatus`) で管理されます。
+   - **`RootCauseAnalysis` (RCA)**: 個々の `LearningRecord` に紐づき、詳細な根本原因分析を記録します。問題、症状、原因、軽減策、解決策、および将来の予防策 (`prevention_proposal`) などの情報を構造化して保持します。
+   - **`LearningRecommendation`**: RCA の結果から得られた具体的な改善提案を表現します。「検知しきい値の調整」や「ポリシーガードの強化」などの `RecommendationType` と、適用先システムを保持し、実装まで追跡可能です。
+   - **`LearningCandidate`**: 自動生成される「学習対象の候補」。解決済みインシデントやポリシー無効パターン等から自動抽出された情報が含まれます。
+
+2. **管理サービス**
+   - **`LearningRecordService`**: `LearningRecord` の新規作成、Status 更新 (Close)、インシデント/ポリシーのリンク、フィルタリング (Scope / Status 等) などの CRUD とステート管理を提供します。
+   - **`RootCauseAnalysisService`**: RCA の記録、情報更新、予防策 (`prevention_proposal`) の抽出、および分析の過程で判明した検知ギャップ (`detection_gap`) の追記を管理します。
+
+これらの基盤データ構造により、運用中に発生した課題が暗黙知として埋もれることなく、構造化された「知識」および「具体的な改善アクション」としてシステムへフィードバックされる体制が整いました。
