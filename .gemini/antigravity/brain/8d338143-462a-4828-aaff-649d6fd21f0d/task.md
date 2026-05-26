@@ -69,8 +69,16 @@
 - [x] git commit & push
 
 ### Wave 2 Tasks
-- [ ] IncidentToPolicyCandidateService 実装
-- [ ] IncidentDetectionService 実装
-- [ ] テスト追加（25件以上）
+- [x] IncidentToPolicyCandidateService 実装
+- [x] IncidentDetectionService 実装
+- [x] テスト追加（25件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 3 Tasks
+- [ ] OpsPolicyManagementService 実装
+- [ ] OpsPolicyDashboardService 実装
+- [ ] OpsPolicyDigestService 実装
+- [ ] テスト追加（30件以上）
 - [ ] task.md / walkthrough.md 更新
 - [ ] git commit & push

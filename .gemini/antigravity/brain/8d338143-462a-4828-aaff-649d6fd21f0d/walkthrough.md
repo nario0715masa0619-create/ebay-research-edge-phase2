@@ -205,3 +205,19 @@ Phase M を通じて、堅牢な SLA 管理機能、一貫性のある State Mac
      5. **seller_health_degradation**: 24時間以内の日次エラー率が 30% 超過 → `PAUSE_HANDOFF` (High)
      6. **guard_rejection_spike**: 60分以内に3回以上の Guard 拒否 → `REQUIRE_MANUAL_REVIEW` (Medium)
    - 各候補の重要度やアクションに基づく優先度スコア計算ロジック（`evaluate_candidate_priority`）も提供します。
+
+### Wave 3 実装内容
+運用制御ポリシーを一元管理し、ダッシュボード集計やレポート出力を提供する Management / Dashboard / Digest サービス群を実装しました。
+
+1. **OpsPolicyManagementService**
+   - ポリシーの CRUD およびライフサイクル管理を担います。
+   - `create_policy_from_candidate` や `create_manual_policy` を通じてポリシーを起票します。
+   - インシデントへの紐付け (`link_policy_to_incident`) や監査ノートの追加 (`add_policy_note`) などの履歴追跡操作を提供します。
+
+2. **OpsPolicyDashboardService**
+   - システム全体のポリシー状況を集計・可視化するためのデータを提供します。
+   - アクション種別、適用スコープ別のカウントや、最も制限を受けているセラーのランキング (`get_top_affected_sellers`)、直近24時間の新規作成数などを `get_policy_summary` として一括返却します。
+
+3. **OpsPolicyDigestService**
+   - Markdown 形式のレポートを自動生成します。
+   - 現在 Active な全ポリシー (`generate_active_policy_digest`)、特定のセラーや環境向け (`generate_seller_policy_digest`)、あるいは日次サマリー (`generate_daily_policy_summary_digest`) などのレポート出力要件をカバーしています。
