@@ -76,9 +76,15 @@
 - [x] git commit & push
 
 ### Wave 3 Tasks
-- [ ] OpsPolicyManagementService 実装
-- [ ] OpsPolicyDashboardService 実装
-- [ ] OpsPolicyDigestService 実装
-- [ ] テスト追加（30件以上）
+- [x] OpsPolicyManagementService 実装
+- [x] OpsPolicyDashboardService 実装
+- [x] OpsPolicyDigestService 実装
+- [x] テスト追加（30件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 4 Tasks
+- [ ] CLI コマンド (12+) 実装
+- [ ] テスト追加（20件以上）
 - [ ] task.md / walkthrough.md 更新
 - [ ] git commit & push

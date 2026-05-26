@@ -221,3 +221,18 @@ Phase M を通じて、堅牢な SLA 管理機能、一貫性のある State Mac
 3. **OpsPolicyDigestService**
    - Markdown 形式のレポートを自動生成します。
    - 現在 Active な全ポリシー (`generate_active_policy_digest`)、特定のセラーや環境向け (`generate_seller_policy_digest`)、あるいは日次サマリー (`generate_daily_policy_summary_digest`) などのレポート出力要件をカバーしています。
+
+### Wave 4 実装内容
+これまでの Management / Dashboard / Digest サービスを CUI 環境から直接操作・照会できるように、Admin CLI コマンドを実装しました。
+
+1. **実装コマンド一覧**
+   - **照会系**: `scan`, `candidate-list`, `list`, `show`, `dashboard`, `digest`
+   - **操作系**: `propose`, `approve`, `activate`, `reject`, `release`, `expire`, `cancel`
+
+2. **出力フォーマットの柔軟性**
+   - 全コマンドに共通オプションとして `--format {table|json|csv}` を導入しました。
+   - 単純なコンソール表示には table (テキスト) を、別システムとの連携や自動処理向けには json や csv を利用でき、運用自動化のパイプラインに組み込みやすくしています。
+   - `--output-file <path>` 指定により、標準出力だけでなく直接ファイルへの書き出しもサポートしています。
+
+3. **安全機能 (Dry-run)**
+   - 状態遷移を伴うすべての操作系コマンドに `--dry-run` オプションをサポートし、誤操作によるシステム全体への意図しないポリシー適用を事前に防止できるようにしています。
