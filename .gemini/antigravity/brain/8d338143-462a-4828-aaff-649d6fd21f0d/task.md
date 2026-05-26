@@ -108,8 +108,14 @@
 ## Phase O: Continuous Learning & Feedback Loop
 
 ### Wave 1 Tasks
-- [ ] 4 DTOs (LearningRecord, RootCauseAnalysis, LearningRecommendation, LearningCandidate)
-- [ ] 2 Services (LearningRecordService, RootCauseAnalysisService)
-- [ ] テスト追加（25件以上）
+- [x] 4 DTOs (LearningRecord, RootCauseAnalysis, LearningRecommendation, LearningCandidate)
+- [x] 2 Services (LearningRecordService, RootCauseAnalysisService)
+- [x] テスト追加（25件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 2 Tasks
+- [ ] 6 Services (Candidate, Recommendation, Effectiveness, Recurring, FalseSignal, Dashboard)
+- [ ] テスト追加（30件以上）
 - [ ] task.md / walkthrough.md 更新
 - [ ] git commit & push

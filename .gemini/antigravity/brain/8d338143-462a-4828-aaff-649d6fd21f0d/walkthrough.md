@@ -285,3 +285,18 @@ Phase M / Phase N で蓄積された Incident や Policy の情報を元に、�
    - **`RootCauseAnalysisService`**: RCA の記録、情報更新、予防策 (`prevention_proposal`) の抽出、および分析の過程で判明した検知ギャップ (`detection_gap`) の追記を管理します。
 
 これらの基盤データ構造により、運用中に発生した課題が暗黙知として埋もれることなく、構造化された「知識」および「具体的な改善アクション」としてシステムへフィードバックされる体制が整いました。
+
+### Wave 2 実装内容
+収集されたインシデントやポリシー適用履歴から、より高度な分析と自動抽出を行うためのサービス群を実装しました。
+
+1. **学習候補と提案の管理**
+   - **`LearningCandidateService`**: 解決済みインシデントからの変換、同一原因の頻発パターンの検出 (`detect_repeated_pattern`)、エラーファミリの再発検出 (`detect_recurring_error_family`)、およびポリシーが無効だったケースの検出を通じて、学習候補を自動抽出・優先度付けします。
+   - **`LearningRecommendationService`**: RCA から導き出された改善提案の作成から、レビュー、承認、実装完了までの状態遷移 (PROPOSED → UNDER_REVIEW → APPROVED → IMPLEMENTED) を管理します。
+
+2. **分析・評価サービス**
+   - **`LearningEffectivenessService`**: ポリシー適用によるインシデント解決の有効性を評価し、スコアリング (`calculate_effectiveness_score`) を行います。効果の低いポリシーの特定も可能です。
+   - **`RecurringIssueAnalysisService`**: セラーや環境ごとに再発している問題のクラスタリングや、将来の再発リスクの予測 (`predict_recurrence_risk`) を行います。
+   - **`FalseSignalAnalysisService`**: False Positive (過剰検知) や False Negative (検知漏れ) の割合を算出し、検知しきい値の調整提案 (`recommend_detection_threshold_adjustment`) を行います。
+
+3. **ダッシュボード集計**
+   - **`LearningDashboardService`**: 上記サービスのデータを統合し、運用者がシステムの学習・改善状況を一目で把握できるサマリデータ (LearningSummary, FalseSignalSummary, RecurringIssueCluster) を生成します。
