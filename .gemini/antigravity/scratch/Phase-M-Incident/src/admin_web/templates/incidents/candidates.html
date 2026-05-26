@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incident Candidates</title>
+    <style>
+        .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .sev-CRITICAL { background-color: #ffcccc; color: #cc0000; }
+        .sev-HIGH { background-color: #ffe5cc; color: #cc6600; }
+        .sev-MEDIUM { background-color: #ffffcc; color: #cccc00; }
+        .sev-LOW { background-color: #e6e6e6; color: #666666; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('incident_bp.list_incidents') }}">Incidents List</a>
+    <h1>Auto-Detected Candidates</h1>
+    
+    <table>
+        <tr>
+            <th>TYPE</th>
+            <th>SEVERITY</th>
+            <th>REASON</th>
+            <th>RELATED ENTITIES</th>
+            <th>ACTION</th>
+        </tr>
+        {% for cand in candidates %}
+        <tr>
+            <td>{{ cand.candidate_type.value }}</td>
+            <td><span class="badge sev-{{ cand.severity.value|upper }}">{{ cand.severity.value|upper }}</span></td>
+            <td>{{ cand.reason }}</td>
+            <td>{{ cand.related_entity_ids|join(', ') }}</td>
+            <td>
+                <!-- Normally this would POST to create an incident -->
+                <button disabled>Manual Create (Preview)</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

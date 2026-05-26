@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Overdue Incidents</title>
+    <style>
+        .red { color: #cc0000; font-weight: bold; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('incident_bp.list_incidents') }}">Incidents List</a>
+    <h1>Overdue Incidents</h1>
+    
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>STATUS</th>
+            <th>SEVERITY</th>
+            <th>OPENED_AT</th>
+            <th>OVERDUE MINUTES</th>
+        </tr>
+        {% for inc in incidents %}
+        <tr>
+            <td><a href="{{ url_for('incident_bp.detail', incident_id=inc.incident_id) }}">{{ inc.incident_id }}</a></td>
+            <td>{{ inc.incident_status.value }}</td>
+            <td>{{ inc.severity.value|upper }}</td>
+            <td>{{ inc.opened_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td class="red">{{ inc.overdue_mins }} m</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
