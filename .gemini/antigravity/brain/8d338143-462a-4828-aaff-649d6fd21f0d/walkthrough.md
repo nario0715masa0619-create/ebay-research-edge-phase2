@@ -337,6 +337,21 @@ CLI に続いて、管理者がブラウザ上で直感的に Learning Services 
   - **`list.html`**: 複数条件によるレコードフィルタと一覧表示、クローズボタン。
   - **`detail.html`**: Badge やメタデータの整理、RCA および Recommendation 追加の専用フォーム連携。
   - **`dashboard.html`**: 各 Service から取得した集計情報に基づく、現状把握用サマリー画面。
-  - **`recommendations.html` / `recurring.html` / `candidates.html`**: 承認ワークフローや、新規改善対象を抽出・一覧表示する専用ビュー。
-
 システム上の全ての分析・提案プロセスが Web インターフェースを通じてシームレスに運用可能となりました。
+
+### Wave 5 実装内容
+これまで実装してきた Learning Services (Candidate, Recurring, FalseSignal, Dashboard, Effectiveness) を定期的にバックグラウンドで実行し、日々の運用サイクルを自動化するための Orchestrator Jobs を実装しました。
+
+- **Orchestrator Jobs (5種)**
+  1. **`LearningCandidateScanJob`**: 解決済みのインシデントやポリシー適用結果から、新たな学習候補を定期スキャンし自動抽出します。
+  2. **`LearningRecurringIssueJob`**: 蓄積された履歴データから、同一セラー/環境や原因カテゴリによる頻発課題 (Cluster) を特定・再計算します。
+  3. **`LearningFalseSignalDigestJob`**: 過剰検知 (FP) や検知漏れ (FN) の比率を算出し、検知ロジックの改善に向けたダイジェストを生成します。
+  4. **`LearningBacklogReviewJob`**: 長期間放置された Learning Record や、レビュー期限の過ぎた Pending Recommendations を洗い出し、警告アラートを生成します。
+  5. **`LearningEffectivenessEvaluationJob`**: 適用されたポリシーの有効性（インシデント抑制効果）を再評価し、効果の薄いポリシー一覧を出力します。
+
+- **設計と特徴**
+  - 各 Job は `dry_run` パラメータをサポートしており、実際のデータ書き換えを伴わない安全な事前検証が可能です。
+  - Idempotency (冪等性) を意識した作りになっており、万が一ジョブが再実行されても同じ分析結果が安定して返る設計としています。
+  - 返り値には `job_id`, `status` (`success`/`failure`), 分析結果のカウント、実行日時などが標準化された形式で含まれており、基盤のスケジューラ (APScheduler/Celery 等) に組み込みやすい仕様です。
+
+Phase O の中核となるシステム自律学習サイクルの自動化基盤が整いました。

@@ -127,8 +127,14 @@
 - [x] git commit & push
 
 ### Wave 4 Tasks
-- [ ] Web routes (7+)
-- [ ] Jinja2 templates (7)
-- [ ] テスト追加（20件以上）
+- [x] Web routes (7+)
+- [x] Jinja2 templates (7)
+- [x] テスト追加（20件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 5 Tasks
+- [ ] Orchestrator jobs (5)
+- [ ] テスト追加（25件以上）
 - [ ] task.md / walkthrough.md 更新
 - [ ] git commit & push
