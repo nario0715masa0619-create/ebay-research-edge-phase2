@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Recurring Issue Clusters</h2>
+<form method="get" action="/ops/learning/recurring">
+    <label>Limit: <input type="number" name="limit" value="10"></label>
+    <button type="submit">Filter</button>
+</form>
+
+<table border="1">
+    <tr>
+        <th>Cluster ID</th>
+        <th>Cause</th>
+        <th>Sellers</th>
+        <th>Envs</th>
+        <th>Occurrence</th>
+        <th>Recent At</th>
+    </tr>
+    {% for c in clusters %}
+    <tr>
+        <td>{{ c.cluster_id }}</td>
+        <td>{{ c.root_cause_category }}</td>
+        <td>{{ c.affected_sellers }}</td>
+        <td>{{ c.affected_environments }}</td>
+        <td>{{ c.occurrence_count }}</td>
+        <td>{{ c.most_recent_at }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Learning Record Detail</h2>
+<ul>
+    <li>ID: {{ record.learning_record_id }}</li>
+    <li>Status: {{ record.status.value }}</li>
+    <li>Category: {{ record.root_cause_category.value }}</li>
+    <li>Impact Scope: {{ record.impact_scope.value }}</li>
+    <li>Effectiveness: {{ record.effectiveness_rating.value }}</li>
+    <li>Confidence: {{ record.confidence_level.value }}</li>
+    <li>FP: {{ record.is_false_positive }}</li>
+    <li>Near Miss: {{ record.is_near_miss }}</li>
+    <li>Title: {{ record.title }}</li>
+    <li>Summary: {{ record.summary }}</li>
+</ul>
+
+<h3>RCAs</h3>
+<ul>
+{% for rca in rcas %}
+    <li>RCA: {{ rca.rca_id }} | Problem: {{ rca.problem_statement }}</li>
+{% endfor %}
+</ul>
+
+{% if record.status.value != "closed" %}
+<h4>Add RCA</h4>
+<form action="/ops/learning/{{ record.learning_record_id }}/add-rca" method="post">
+    <input type="text" name="problem" placeholder="Problem" required>
+    <input type="text" name="cause" placeholder="Cause" required>
+    <input type="text" name="resolution" placeholder="Resolution" required>
+    <input type="text" name="prevention" placeholder="Prevention">
+    <button type="submit">Add RCA</button>
+</form>
+{% endif %}
+
+<h3>Recommendations</h3>
+<ul>
+{% for r in recommendations %}
+    <li>Rec: {{ r.recommendation_id }} | Status: {{ r.recommendation_status.value }} | Type: {{ r.recommendation_type.value }}</li>
+{% endfor %}
+</ul>
+
+{% if record.status.value != "closed" %}
+<h4>Add Recommendation</h4>
+<form action="/ops/learning/{{ record.learning_record_id }}/add-recommendation" method="post">
+    <input type="text" name="type" placeholder="Type" required>
+    <input type="text" name="target_phase" placeholder="Target Phase" required>
+    <input type="text" name="proposal_summary" placeholder="Proposal Summary" required>
+    <input type="number" name="priority" value="50" required>
+    <button type="submit">Add Recommendation</button>
+</form>
+
+<form action="/ops/learning/{{ record.learning_record_id }}/close" method="post">
+    <button type="submit">Close Learning Record</button>
+</form>
+{% endif %}
+
+{% endblock %}

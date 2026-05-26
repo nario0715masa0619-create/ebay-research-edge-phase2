@@ -316,3 +316,27 @@ Phase M / Phase N で蓄積された Incident や Policy の情報を元に、�
   - `dashboard` / `digest`: 現在の学習状況のサマリビューや、Markdown 形式のダイジェストレポートを生成します。
 
 出力フォーマットはすべて `table`, `json`, `csv` に対応しており、他ツール連携や自動化スクリプトでの活用が容易な設計となっています。
+
+### Wave 4 実装内容
+CLI に続いて、管理者がブラウザ上で直感的に Learning Services 群の操作・照会ができる Web ルート (Flask Blueprint) と Jinja2 テンプレート群を実装しました。
+
+- **Web Routes 一覧**
+  - `GET /ops/learning`: 既存の Learning Record 一覧 (フィルタ付き)
+  - `GET /ops/learning/<id>`: 特定 Learning Record の詳細、RCA・Recommendation一覧表示
+  - `GET /ops/learning/dashboard`: サマリー、トップ原因、頻発クラスタ、FP 傾向などの視覚化ダッシュボード
+  - `GET /ops/learning/recommendations`: レビュー待ちの Recommendation 一覧表示
+  - `GET /ops/learning/recurring`: 頻出するクラスタの特定と分析ビュー
+  - `GET /ops/learning/candidates`: システムから抽出された新たな Candidate リスト表示
+  - `POST /ops/learning/<id>/add-rca`: RCA の新規追加フォーム送信
+  - `POST /ops/learning/<id>/add-recommendation`: Recommendation の新規追加フォーム送信
+  - `POST /ops/learning/<id>/close`: Learning Record のクローズアクション
+  - `POST /ops/learning/recommendation/<id>/approve`: 提案の承認 (Approve)
+  - `POST /ops/learning/recommendation/<id>/reject`: 提案の却下 (Reject)
+
+- **Template 構成**
+  - **`list.html`**: 複数条件によるレコードフィルタと一覧表示、クローズボタン。
+  - **`detail.html`**: Badge やメタデータの整理、RCA および Recommendation 追加の専用フォーム連携。
+  - **`dashboard.html`**: 各 Service から取得した集計情報に基づく、現状把握用サマリー画面。
+  - **`recommendations.html` / `recurring.html` / `candidates.html`**: 承認ワークフローや、新規改善対象を抽出・一覧表示する専用ビュー。
+
+システム上の全ての分析・提案プロセスが Web インターフェースを通じてシームレスに運用可能となりました。

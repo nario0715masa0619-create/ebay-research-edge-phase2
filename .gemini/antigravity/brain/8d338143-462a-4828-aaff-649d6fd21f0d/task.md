@@ -121,7 +121,14 @@
 - [x] git commit & push
 
 ### Wave 3 Tasks
-- [ ] CLI コマンド (13+)
+- [x] CLI コマンド (13+)
+- [x] テスト追加（20件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 4 Tasks
+- [ ] Web routes (7+)
+- [ ] Jinja2 templates (7)
 - [ ] テスト追加（20件以上）
 - [ ] task.md / walkthrough.md 更新
 - [ ] git commit & push
