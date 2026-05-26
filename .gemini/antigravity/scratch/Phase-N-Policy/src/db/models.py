@@ -119,3 +119,16 @@ class LearningRecommendationModel(Base):
     updated_at = Column(DateTime, nullable=False)
 
     learning_record = relationship('LearningRecordModel', back_populates='recommendations')
+
+class ChangeProposalModel(Base):
+    __tablename__ = 'change_proposals'
+    change_proposal_id = Column(String(36), primary_key=True)
+class ChangeEventModel(Base):
+    __tablename__ = 'change_events'
+    event_id = Column(String(36), primary_key=True)
+class ConfigVersionModel(Base):
+    __tablename__ = 'config_versions'
+    config_version_id = Column(String(36), primary_key=True)
+class RolloutPlanModel(Base):
+    __tablename__ = 'rollout_plans'
+    rollout_plan_id = Column(String(36), primary_key=True)
