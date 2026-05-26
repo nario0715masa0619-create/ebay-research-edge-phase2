@@ -236,3 +236,20 @@ Phase M を通じて、堅牢な SLA 管理機能、一貫性のある State Mac
 
 3. **安全機能 (Dry-run)**
    - 状態遷移を伴うすべての操作系コマンドに `--dry-run` オプションをサポートし、誤操作によるシステム全体への意図しないポリシー適用を事前に防止できるようにしています。
+
+### Wave 5 実装内容
+CLI に続き、運用担当者が視覚的にポリシーを管理できる Web インターフェース (Web Routes / Jinja2 Templates) を実装しました。
+
+1. **実装ルートと画面構成**
+   - **一覧・検索画面** (`/ops/policies/`): ポリシーの絞り込み (Scope, Status) と一覧表示。
+   - **詳細画面** (`/ops/policies/<id>`): ポリシーの基本情報、タイムライン (監査履歴)、および現在可能な状態遷移 (Approve, Activate 等) のアクションボタンを表示します。
+   - **候補プレビュー画面** (`/ops/policies/candidates`): 異常検知から起票されたポリシー候補を一覧表示します。
+   - **作成画面** (`/ops/policies/create`): 手動で新規ポリシーを作成するフォームを提供します。
+   - **ダッシュボード** (`/ops/policies/dashboard`): 集計データや制限の多いセラーランキング等をサマリー表示します。
+   - **レポートプレビュー** (`/ops/policies/<id>/digest`): 個別ポリシーの Markdown 出力をブラウザ上で確認できます。
+
+2. **UI の特徴**
+   - `PolicyStatus` や `Severity` に応じた状態遷移ボタンの動的出し分け（例: PROPOSED の場合は Approve や Reject のみ表示、ACTIVE の場合は Release 等）。
+   - `STRONG` レベルのポリシーを承認する際の `review_due` 入力フィールド制御。
+   - 処理の成功/失敗を伝えるフラッシュメッセージ機構 (`get_flashed_messages()`) の導入。
+   - 誤操作防止の観点から、既存ポリシーは直接編集 (UPDATE/DELETE) させず、すべて Status 変更と Append-only の監査ノートで追跡するリードオンリー/追記型デザインを採用しています。

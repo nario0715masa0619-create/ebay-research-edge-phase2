@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Policies List</title>
+</head>
+<body>
+    <h1>Ops Policies</h1>
+    
+    <div>
+        <form method="GET" action="/ops/policies/">
+            <label>Status:
+                <select name="status">
+                    <option value="">All</option>
+                    {% for st in PolicyStatus %}
+                    <option value="{{ st.value }}">{{ st.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Scope:
+                <select name="scope">
+                    <option value="">All</option>
+                    {% for sc in ScopeType %}
+                    <option value="{{ sc.value }}">{{ sc.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Seller: <input type="text" name="seller"></label>
+            <label>Environment: <input type="text" name="environment"></label>
+            <button type="submit">Filter</button>
+        </form>
+    </div>
+    
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Action</th>
+                <th>Scope</th>
+                <th>Target</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for policy in policies %}
+            <tr>
+                <td><a href="/ops/policies/{{ policy.policy_id }}">{{ policy.policy_id }}</a></td>
+                <td>{{ policy.action_type.value }}</td>
+                <td>{{ policy.scope_type.value }}</td>
+                <td>{{ policy.target_id or 'All' }}</td>
+                <td>{{ policy.status.value }}</td>
+                <td>
+                    <a href="/ops/policies/{{ policy.policy_id }}">Show</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
