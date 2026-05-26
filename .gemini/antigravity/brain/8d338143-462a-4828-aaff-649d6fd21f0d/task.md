@@ -134,7 +134,14 @@
 - [x] git commit & push
 
 ### Wave 5 Tasks
-- [ ] Orchestrator jobs (5)
-- [ ] テスト追加（25件以上）
-- [ ] task.md / walkthrough.md 更新
-- [ ] git commit & push
+- [x] Orchestrator jobs (5)
+- [x] テスト追加（25件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push
+
+### Wave 6 Tasks
+- [x] Alembic migration
+- [x] ORM model & DB repositories
+- [x] テスト追加（25件以上）
+- [x] Docs (phase-o-*.md) / task.md / walkthrough.md 更新
+- [x] git commit & push

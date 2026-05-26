@@ -355,3 +355,20 @@ CLI に続いて、管理者がブラウザ上で直感的に Learning Services 
   - 返り値には `job_id`, `status` (`success`/`failure`), 分析結果のカウント、実行日時などが標準化された形式で含まれており、基盤のスケジューラ (APScheduler/Celery 等) に組み込みやすい仕様です。
 
 Phase O の中核となるシステム自律学習サイクルの自動化基盤が整いました。
+
+### Wave 6 実装内容 (Phase O 完了)
+これまでの Wave でメモリ上で動作させていた Learning Services のデータ構造を、すべてリレーショナルデータベース (RDBMS) へ永続化するための基盤を構築しました。
+
+- **Alembic Migration**
+  - `learning_records`, `root_cause_analyses`, `learning_recommendations` の 3 つのテーブルを作成するマイグレーションスクリプトを定義しました。インデックス（複合、ステータス別、日付順など）を適切に張り、クエリ最適化も考慮しています。
+  
+- **ORM Models**
+  - SQLAlchemy を用いて、3 つのエンティティに対応するデータモデル (`LearningRecordModel`, `RootCauseAnalysisModel`, `LearningRecommendationModel`) を定義し、既存の `OpsPolicyModel` 等と同じ `src/db/models.py` へ追記しました。One-to-Many のリレーションも正確に張られています。
+
+- **DB Repositories**
+  - 各種ドメインエンティティへの永続化アクセスを担う `LearningRecordRepository`, `RootCauseAnalysisRepository`, `LearningRecommendationRepository` を実装しました。これらは各 Service が依存するデータストア層として機能します。
+
+- **Documentation**
+  - Phase O 全体の集大成として `docs/phase-o-learning-feedback-root-cause-analysis-implementation.md` を作成し、アーキテクチャや 13 のユースケース、安全制御に関する詳細を明文化しました。
+
+これにて Phase O (Learning, Feedback, and Root Cause Analysis) が完結しました！今後は蓄積された RCA と Recommendation データを基盤に、Phase P 以降での「自動改修プロセス」へ接続することが可能になります。
