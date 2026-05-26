@@ -145,3 +145,12 @@
 - [x] テスト追加（25件以上）
 - [x] Docs (phase-o-*.md) / task.md / walkthrough.md 更新
 - [x] git commit & push
+
+## Phase P: Change Management & Auto-Remediation
+
+### Wave 1 Tasks
+- [x] 4 DTOs (ChangeProposal, ConfigVersion, RolloutPlan, EffectiveConfigDecision)
+- [x] 3 Services (ChangeProposalService, ConfigVersionService, EffectiveConfigService)
+- [x] テスト追加（25件以上）
+- [x] task.md / walkthrough.md 更新
+- [x] git commit & push

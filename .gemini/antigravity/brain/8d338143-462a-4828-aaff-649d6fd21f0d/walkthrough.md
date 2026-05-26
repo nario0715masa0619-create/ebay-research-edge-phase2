@@ -372,3 +372,21 @@ Phase O の中核となるシステム自律学習サイクルの自動化基盤
   - Phase O 全体の集大成として `docs/phase-o-learning-feedback-root-cause-analysis-implementation.md` を作成し、アーキテクチャや 13 のユースケース、安全制御に関する詳細を明文化しました。
 
 これにて Phase O (Learning, Feedback, and Root Cause Analysis) が完結しました！今後は蓄積された RCA と Recommendation データを基盤に、Phase P 以降での「自動改修プロセス」へ接続することが可能になります。
+
+## Phase P: Change Management & Auto-Remediation
+
+### Wave 1 実装内容
+Phase O の学習・提案フェーズで生成された「システム改善提案 (LearningRecommendation)」を、安全かつ段階的にシステムへ適用（プロビジョニング）するための基盤として、Change Management (変更管理) モデル群を実装しました。
+
+- **DTOs / Models**
+  - **`ChangeProposal`**: 変更案（推奨案から生成、または手動作成）を表現。リスクレベルや承認ステータス、バリデーション方針などを保持します。
+  - **`ConfigVersion`**: 各種コンポーネント設定の世代管理。変更が適用された際のスナップショットと有効期間を管理します。
+  - **`RolloutPlan`**: 変更の段階的適用（カナリアリリースなど）の計画を管理します。
+  - **`EffectiveConfigDecision`**: 特定のスコープ (Global, Environment, Seller) における「現在有効な設定」の計算結果と、その決定根拠を保持します。
+
+- **Services**
+  - **`ChangeProposalService`**: 提案の作成から承認・却下までのライフサイクル管理とステータス遷移（Event付き）を担当します。
+  - **`ConfigVersionService`**: 新規バージョンの登録や、古いバージョンから新しいバージョンへの切り替え (Supersede) のライフサイクルを管理します。
+  - **`EffectiveConfigService`**: `GLOBAL` → `ENVIRONMENT` → `SELLER` の優先順位に基づき、指定スコープで適用されるべき「有効な設定値」の算出（Precedence Merge）と、その計算根拠（Explanation）の生成を行います。
+
+本 Wave により、システムの各種しきい値やルールを「安全にバージョン管理しながら上書きする」基盤が整備されました。今後は、変更の自動レビュー・段階的ロールアウトなどの実行ロジックへと進みます。
