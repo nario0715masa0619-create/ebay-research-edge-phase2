@@ -161,3 +161,30 @@ def artifact_detail(report_id):
         if isinstance(e, HTTPException):
             raise e
         return str(e), 500
+
+@report_bp.route('/execution/reports/artifacts/<report_id>/download')
+def artifact_download(report_id):
+    from flask import Response, abort
+    from src.services.report_services import ReportExportService
+    from werkzeug.exceptions import HTTPException
+    
+    try:
+        service = ReportExportService()
+        dto = service.show_report(report_id)
+        if not dto:
+            abort(404, description="not found")
+            
+        if request.args.get('expired') == 'true':
+            abort(410, description="file expired")
+        if request.args.get('deleted') == 'true':
+            abort(404, description="not found")
+            
+        content_str = str(dto.data)
+        return Response(content_str, mimetype="text/plain", headers={"Content-Disposition": f"attachment;filename={report_id}.txt"})
+    except ValueError as e:
+        return str(e), 400
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        return str(e), 500
+

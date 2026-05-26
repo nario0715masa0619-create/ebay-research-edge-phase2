@@ -131,12 +131,25 @@ def handle_artifacts(args):
         sys.exit(1)
 
 def handle_show(args):
+    import os
+    import datetime
     try:
         service = ReportExportService()
         dto = service.show_report(args.report_id)
         if not dto:
             print("not found")
             sys.exit(1)
+        if getattr(args, 'download', False):
+            # check expiry if available
+            if hasattr(dto, 'expires_at') and dto.expires_at and dto.expires_at < datetime.datetime.utcnow():
+                print("file expired")
+                sys.exit(1)
+            os.makedirs('downloads', exist_ok=True)
+            dl_path = os.path.join('downloads', f"{args.report_id}.txt")
+            with open(dl_path, 'w', encoding='utf-8') as f:
+                f.write(format_output(dto.data, args.format))
+            print(f"Downloaded to: {dl_path}")
+            return
         save_and_print(format_output(dto.data, args.format), args.output_file)
     except ValueError as e:
         print(f"validation error: {e}")
@@ -206,6 +219,7 @@ def create_parser():
     # show
     show_parser = subparsers.add_parser('show')
     show_parser.add_argument('--report-id', required=True)
+    show_parser.add_argument('--download', action='store_true')
     add_common_args(show_parser)
     show_parser.set_defaults(func=handle_show)
 
