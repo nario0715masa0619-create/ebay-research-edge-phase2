@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Policy Candidates</title>
+</head>
+<body>
+    <h1>Policy Candidates</h1>
+    
+    <div>
+        <form method="GET" action="/ops/policies/candidates">
+            <label>Severity: <input type="text" name="severity"></label>
+            <button type="submit">Filter</button>
+        </form>
+    </div>
+    
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Severity</th>
+                <th>Recommended Action</th>
+                <th>Target Scope</th>
+                <th>Target ID</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for candidate in candidates %}
+            <tr>
+                <td>{{ candidate.candidate_id }}</td>
+                <td>{{ candidate.candidate_type.name }}</td>
+                <td>{{ candidate.severity.name if candidate.severity else '' }}</td>
+                <td>{{ candidate.recommended_action_type.name if candidate.recommended_action_type else '' }}</td>
+                <td>{{ candidate.target_scope.name if candidate.target_scope else '' }}</td>
+                <td>{{ candidate.target_id or 'All' }}</td>
+                <td>{{ candidate.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

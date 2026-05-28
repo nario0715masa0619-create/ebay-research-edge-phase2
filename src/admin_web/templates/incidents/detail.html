@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incident Detail</title>
+    <style>
+        .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .sev-CRITICAL { background-color: #ffcccc; color: #cc0000; }
+        .sev-HIGH { background-color: #ffe5cc; color: #cc6600; }
+        .sev-MEDIUM { background-color: #ffffcc; color: #cccc00; }
+        .sev-LOW { background-color: #e6e6e6; color: #666666; }
+        .timeline { list-style-type: none; padding-left: 0; }
+        .timeline li { padding: 10px; border-left: 3px solid #ccc; margin-bottom: 5px; }
+        .links { margin-top: 15px; }
+        .action-form { display: inline-block; margin-right: 10px; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('incident_bp.list_incidents') }}">Back to List</a>
+    <h1>Incident: {{ incident.title }}</h1>
+    
+    <div>
+        <strong>ID:</strong> {{ incident.incident_id }} <br>
+        <strong>Type:</strong> {{ incident.incident_type.value }} <br>
+        <strong>Severity:</strong> <span class="badge sev-{{ incident.severity.value|upper }}">{{ incident.severity.value|upper }}</span> <br>
+        <strong>Status:</strong> {{ incident.incident_status.value }} <br>
+        <strong>SLA State:</strong> {{ incident.sla_state.value }} <br>
+        <strong>Assigned To:</strong> {{ incident.assigned_to or 'Unassigned' }} <br>
+        <strong>Summary:</strong> {{ incident.summary }}
+    </div>
+
+    <h3>Dates</h3>
+    <ul>
+        <li><strong>Opened At:</strong> {{ incident.opened_at }}</li>
+        <li><strong>Ack Due At:</strong> {{ incident.ack_due_at }}</li>
+        <li><strong>Resolve Due At:</strong> {{ incident.resolve_due_at }}</li>
+        <li><strong>Acknowledged At:</strong> {{ incident.acknowledged_at or 'N/A' }}</li>
+        <li><strong>Resolved At:</strong> {{ incident.resolved_at or 'N/A' }}</li>
+    </ul>
+
+    <h3>Actions</h3>
+    <div>
+        <form class="action-form" method="POST" action="{{ url_for('incident_bp.acknowledge', incident_id=incident.incident_id) }}">
+            <input type="text" name="note" placeholder="Ack Note">
+            <button type="submit">Acknowledge</button>
+        </form>
+        <form class="action-form" method="POST" action="{{ url_for('incident_bp.assign', incident_id=incident.incident_id) }}">
+            <input type="text" name="owner" placeholder="Owner ID" required>
+            <button type="submit">Assign</button>
+        </form>
+        <form class="action-form" method="POST" action="{{ url_for('incident_bp.resolve', incident_id=incident.incident_id) }}">
+            <input type="text" name="note" placeholder="Resolve Note">
+            <button type="submit">Resolve</button>
+        </form>
+        <form class="action-form" method="POST" action="{{ url_for('incident_bp.close', incident_id=incident.incident_id) }}">
+            <input type="text" name="note" placeholder="Close Note">
+            <button type="submit">Close</button>
+        </form>
+        <form class="action-form" method="POST" action="{{ url_for('incident_bp.reopen', incident_id=incident.incident_id) }}">
+            <input type="text" name="reason" placeholder="Reopen Reason" required>
+            <button type="submit">Reopen</button>
+        </form>
+    </div>
+
+    <h3>Related Links</h3>
+    <ul class="links">
+        {% for link in links %}
+        <li><strong>{{ link.entity_type.value }}:</strong> {{ link.entity_id }}</li>
+        {% else %}
+        <li>No related links.</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Timeline</h3>
+    <ul class="timeline">
+        {% for event in events %}
+        <li>
+            <strong>[{{ event.created_at }}] {{ event.event_type.value }}</strong> by {{ event.actor_id }}<br>
+            Note: {{ event.note or '-' }}
+        </li>
+        {% endfor %}
+    </ul>
+
+</body>
+</html>

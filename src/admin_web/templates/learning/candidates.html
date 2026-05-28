@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Learning Candidates</h2>
+<form method="get" action="/ops/learning/candidates">
+    <label>Limit: <input type="number" name="limit" value="50"></label>
+    <button type="submit">Filter</button>
+</form>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Source</th>
+        <th>Cause Category</th>
+        <th>Impact Scope</th>
+        <th>Confidence</th>
+        <th>Created At</th>
+        <th>Actions</th>
+    </tr>
+    {% for c in candidates %}
+    <tr>
+        <td>{{ c.candidate_id }}</td>
+        <td>{{ c.candidate_source.value }}</td>
+        <td>{{ c.suggested_root_cause_category.value }}</td>
+        <td>{{ c.suggested_impact_scope.value }}</td>
+        <td>{{ c.confidence_score }}</td>
+        <td>{{ c.created_at }}</td>
+        <td>
+            <!-- For demonstration, it would ideally point to a POST route to create from candidate -->
+            <button disabled>Create Learning Record</button>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Learning Dashboard</h2>
+
+<div>
+    <h3>Summary Cards</h3>
+    <p>Total Records: {{ summary.total_records }}</p>
+    <p>Pending Recommendations: {{ pending_recs|length }}</p>
+    <p>Stale Backlog: {{ stale|length }}</p>
+</div>
+
+<div>
+    <h3>Top Root Causes</h3>
+    <ul>
+    {% for cause, count in top_causes %}
+        <li>{{ cause.value }}: {{ count }}</li>
+    {% endfor %}
+    </ul>
+</div>
+
+<div>
+    <h3>False Signal Summary</h3>
+    <p>FP Rate: {{ fp_stats.fp_rate }}</p>
+    <p>FN Rate: {{ fp_stats.fn_rate }}</p>
+</div>
+
+<div>
+    <h3>Recurring Clusters</h3>
+    <ul>
+    {% for c in recurring %}
+        <li>Cluster {{ c.cluster_id }}: {{ c.count }} occurrences</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endblock %}

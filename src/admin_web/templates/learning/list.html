@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Learning Records</h2>
+<form method="get" action="/ops/learning/">
+    <label>Status: <input type="text" name="status"></label>
+    <label>Category: <input type="text" name="category"></label>
+    <label>Seller: <input type="text" name="seller"></label>
+    <label>Environment: <input type="text" name="environment"></label>
+    <label>FP Only: <input type="checkbox" name="false_positive" value="true"></label>
+    <label>Limit: <input type="number" name="limit" value="100"></label>
+    <button type="submit">Filter</button>
+</form>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Status</th>
+        <th>Category</th>
+        <th>Seller</th>
+        <th>Env</th>
+        <th>Effectiveness</th>
+        <th>Created</th>
+        <th>Actions</th>
+    </tr>
+    {% for r in records %}
+    <tr>
+        <td>{{ r.learning_record_id }}</td>
+        <td>{{ r.status.value }}</td>
+        <td>{{ r.root_cause_category.value }}</td>
+        <td>{{ r.seller_account_id }}</td>
+        <td>{{ r.environment }}</td>
+        <td>{{ r.effectiveness_rating.value }}</td>
+        <td>{{ r.created_at }}</td>
+        <td>
+            <a href="/ops/learning/{{ r.learning_record_id }}">Show</a>
+            {% if r.status.value != "closed" %}
+            <form action="/ops/learning/{{ r.learning_record_id }}/close" method="post" style="display:inline;">
+                <button type="submit">Close</button>
+            </form>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

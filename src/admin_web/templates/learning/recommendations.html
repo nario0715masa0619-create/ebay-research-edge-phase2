@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Recommendations</h2>
+<form method="get" action="/ops/learning/recommendations">
+    <label>Status: <input type="text" name="status"></label>
+    <label>Target Phase: <input type="text" name="target_phase"></label>
+    <label>Priority Min: <input type="number" name="priority_min" value="0"></label>
+    <label>Limit: <input type="number" name="limit" value="50"></label>
+    <button type="submit">Filter</button>
+</form>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Type</th>
+        <th>Target Phase</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Review Due</th>
+        <th>Actions</th>
+    </tr>
+    {% for r in recommendations %}
+    <tr>
+        <td>{{ r.recommendation_id }}</td>
+        <td>{{ r.recommendation_type.value }}</td>
+        <td>{{ r.target_phase }}</td>
+        <td>{{ r.priority }}</td>
+        <td>{{ r.recommendation_status.value }}</td>
+        <td>{{ r.review_due_at }}</td>
+        <td>
+            {% if r.recommendation_status.value in ["proposed", "under_review"] %}
+            <form action="/ops/learning/recommendation/{{ r.recommendation_id }}/approve" method="post" style="display:inline;">
+                <button type="submit">Approve</button>
+            </form>
+            <form action="/ops/learning/recommendation/{{ r.recommendation_id }}/reject" method="post" style="display:inline;">
+                <button type="submit">Reject</button>
+            </form>
+            {% endif %}
+            <a href="/ops/learning/{{ r.learning_record_id }}">View Record</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

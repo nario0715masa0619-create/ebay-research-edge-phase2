@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incident Dashboard</title>
+    <style>
+        .card { display: inline-block; width: 200px; padding: 20px; margin: 10px; border: 1px solid #ccc; text-align: center; border-radius: 8px; }
+        .num { font-size: 32px; font-weight: bold; }
+        .red { color: #cc0000; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <a href="{{ url_for('incident_bp.list_incidents') }}">Incidents List</a>
+    <h1>Incident Dashboard</h1>
+    
+    <div>
+        <div class="card">
+            <div>Total Open</div>
+            <div class="num">{{ summary.open_count }}</div>
+        </div>
+        <div class="card">
+            <div class="red">Total Overdue</div>
+            <div class="num red">{{ summary.overdue_count }}</div>
+        </div>
+        <div class="card">
+            <div class="red">Total Breached</div>
+            <div class="num red">{{ summary.breached_count }}</div>
+        </div>
+        <div class="card">
+            <div>MTTA (hours)</div>
+            <div class="num">{{ summary.mean_ack_time_hours }}</div>
+        </div>
+        <div class="card">
+            <div>MTTR (hours)</div>
+            <div class="num">{{ summary.mean_resolve_time_hours }}</div>
+        </div>
+    </div>
+
+    <h3>Severity Distribution</h3>
+    <ul>
+        {% for sev, count in summary.by_severity.items() %}
+        <li><strong>{{ sev|upper }}:</strong> {{ count }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>By Environment</h3>
+    <ul>
+        {% for env, count in summary.by_environment.items() %}
+        <li><strong>{{ env }}:</strong> {{ count }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>By Seller</h3>
+    <ul>
+        {% for seller, count in summary.by_seller.items() %}
+        <li><strong>{{ seller }}:</strong> {{ count }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Recent Incidents (Latest 10)</h3>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>STATUS</th>
+            <th>SEVERITY</th>
+            <th>OPENED_AT</th>
+        </tr>
+        {% for inc in recent %}
+        <tr>
+            <td><a href="{{ url_for('incident_bp.detail', incident_id=inc.incident_id) }}">{{ inc.incident_id }}</a></td>
+            <td>{{ inc.incident_status.value }}</td>
+            <td>{{ inc.severity.value|upper }}</td>
+            <td>{{ inc.opened_at }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

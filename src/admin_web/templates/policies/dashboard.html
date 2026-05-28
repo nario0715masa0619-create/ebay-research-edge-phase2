@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Policy Dashboard</title>
+</head>
+<body>
+    <h1>Ops Policy Dashboard</h1>
+    
+    <div>
+        <h3>Summary</h3>
+        <ul>
+            <li>Total Policies: {{ summary.total_count }}</li>
+            <li>Active Policies: {{ summary.active_count }}</li>
+            <li>Proposed Policies: {{ summary.proposed_count }}</li>
+            <li>Released Policies: {{ summary.released_count }}</li>
+            <li>Expired Policies: {{ summary.expired_count }}</li>
+            <li>Created Last 24h: {{ summary.created_last_24h }}</li>
+        </ul>
+    </div>
+    
+    <div>
+        <h3>By Action Type</h3>
+        <ul>
+            {% for action, count in summary.by_action_type.items() %}
+            <li>{{ action.value }}: {{ count }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div>
+        <h3>By Scope</h3>
+        <ul>
+            {% for scope, count in summary.by_scope_type.items() %}
+            <li>{{ scope.value }}: {{ count }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <div>
+        <h3>Top Affected Sellers</h3>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Seller ID</th>
+                    <th>Policy Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for seller, count in top_sellers %}
+                <tr>
+                    <td>{{ seller }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

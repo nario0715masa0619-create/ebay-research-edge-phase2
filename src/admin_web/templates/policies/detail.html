@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Policy Detail</title>
+</head>
+<body>
+    <h1>Policy {{ policy.policy_id }}</h1>
+    
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <div>
+        <p>Status: <span class="badge status-{{ policy.status.value }}">{{ policy.status.value }}</span></p>
+        <p>Level: <span class="badge level-{{ policy.level.value }}">{{ policy.level.value }}</span></p>
+        <p>Scope: {{ policy.scope_type.value }}</p>
+        <p>Target: {{ policy.target_id or 'All' }}</p>
+        <p>Action: {{ policy.action_type.value }}</p>
+        <p>Reason: {{ policy.reason_summary }}</p>
+        <p>Review Due: {{ policy.review_due_at }}</p>
+    </div>
+    
+    <div>
+        <h3>Actions</h3>
+        {% if policy.status.name in ('PROPOSED') %}
+        <form method="POST" action="/ops/policies/{{ policy.policy_id }}/approve" style="display:inline;">
+            <input type="text" name="review_due" placeholder="Review Due (ISO) if STRONG">
+            <button type="submit">Approve</button>
+        </form>
+        {% endif %}
+        
+        {% if policy.status.name in ('APPROVED') %}
+        <form method="POST" action="/ops/policies/{{ policy.policy_id }}/activate" style="display:inline;">
+            <button type="submit">Activate</button>
+        </form>
+        {% endif %}
+        
+        {% if policy.status.name in ('PROPOSED', 'APPROVED') %}
+        <form method="POST" action="/ops/policies/{{ policy.policy_id }}/reject" style="display:inline;">
+            <input type="text" name="reason" placeholder="Reason">
+            <button type="submit">Reject</button>
+        </form>
+        {% endif %}
+        
+        {% if policy.status.name in ('ACTIVE') %}
+        <form method="POST" action="/ops/policies/{{ policy.policy_id }}/release" style="display:inline;">
+            <button type="submit">Release</button>
+        </form>
+        {% endif %}
+        
+        {% if policy.status.name in ('PROPOSED', 'APPROVED', 'ACTIVE') %}
+        <form method="POST" action="/ops/policies/{{ policy.policy_id }}/cancel" style="display:inline;">
+            <input type="text" name="reason" placeholder="Reason">
+            <button type="submit">Cancel</button>
+        </form>
+        {% endif %}
+        
+        <a href="/ops/policies/{{ policy.policy_id }}/digest">View Digest</a>
+    </div>
+
+    <div>
+        <h3>Timeline</h3>
+        <ul>
+            {% for event in events %}
+            <li>[{{ event.created_at }}] {{ event.actor_id }}: {{ event.note }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

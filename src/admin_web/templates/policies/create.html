@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Policy</title>
+</head>
+<body>
+    <h1>Create Operations Policy</h1>
+    
+    <form method="POST" action="/ops/policies/create">
+        <div>
+            <label>Title: <input type="text" name="title" required></label>
+        </div>
+        <div>
+            <label>Action: 
+                <select name="action" required>
+                    {% for action in ActionType %}
+                    <option value="{{ action.value }}">{{ action.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <div>
+            <label>Scope: 
+                <select name="scope" required>
+                    {% for scope in ScopeType %}
+                    <option value="{{ scope.value }}">{{ scope.value }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <div>
+            <label>Target ID: <input type="text" name="target" placeholder="Optional"></label>
+        </div>
+        <div>
+            <label>Reason: <textarea name="reason" required></textarea></label>
+        </div>
+        <button type="submit">Create</button>
+        <a href="/ops/policies/">Cancel</a>
+    </form>
+</body>
+</html>

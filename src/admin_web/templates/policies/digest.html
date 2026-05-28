@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Policy Digest</title>
+</head>
+<body>
+    <h1>Policy Digest: {{ policy.title }}</h1>
+    
+    <div>
+        <a href="/ops/policies/{{ policy.policy_id }}">Back to Policy</a>
+    </div>
+
+    <div>
+        <h2>Markdown Content</h2>
+        <pre>{{ markdown_content }}</pre>
+    </div>
+</body>
+</html>
