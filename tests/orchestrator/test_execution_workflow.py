@@ -1,5 +1,15 @@
 import pytest
 import os
+
+from src.db.config import DatabaseConfig
+
+@pytest.fixture(autouse=True)
+def disable_foreign_keys():
+    original = DatabaseConfig.DB_ENABLE_FOREIGN_KEYS
+    DatabaseConfig.DB_ENABLE_FOREIGN_KEYS = False
+    yield
+    DatabaseConfig.DB_ENABLE_FOREIGN_KEYS = original
+
 from src.orchestrator.execution_workflow import ExecutionWorkflow
 from src.listing_execution.cli import get_service
 

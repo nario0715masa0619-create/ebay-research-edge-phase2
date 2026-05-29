@@ -3,6 +3,15 @@ from datetime import datetime, timezone
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from src.db.config import DatabaseConfig
+
+@pytest.fixture(autouse=True)
+def disable_foreign_keys():
+    original = DatabaseConfig.DB_ENABLE_FOREIGN_KEYS
+    DatabaseConfig.DB_ENABLE_FOREIGN_KEYS = False
+    yield
+    DatabaseConfig.DB_ENABLE_FOREIGN_KEYS = original
+
 from src.db.models import Base
 from src.listing_execution.services.application_service import ExecutionApplicationService
 from src.listing_execution.gateways.execution_gateway import ExecutionResult, ValidationResult
