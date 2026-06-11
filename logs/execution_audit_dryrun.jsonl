@@ -1,0 +1,12 @@
+{"timestamp": "2026-06-11T18:21:44.628317", "event": "execution_skip", "sku": "SKU0001", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:21:44.628831", "event": "execution_skip", "sku": "SKU0002", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:21:44.629183", "event": "execution_skip", "sku": "SKU0003", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:22:05.912630", "event": "execution_skip", "sku": "SKU0001", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:22:05.913115", "event": "execution_skip", "sku": "SKU0002", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:22:05.913451", "event": "execution_skip", "sku": "SKU0003", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:23:26.064088", "event": "execution_skip", "sku": "SKU0001", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:23:26.064520", "event": "execution_skip", "sku": "SKU0002", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:23:26.064824", "event": "execution_skip", "sku": "SKU0003", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:24:34.300556", "event": "execution_skip", "sku": "SKU0001", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:24:34.300977", "event": "execution_skip", "sku": "SKU0002", "reason": "Payload build failed"}
+{"timestamp": "2026-06-11T18:24:34.301262", "event": "execution_skip", "sku": "SKU0003", "reason": "Payload build failed"}

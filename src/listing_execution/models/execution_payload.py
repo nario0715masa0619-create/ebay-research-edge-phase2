@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,24 @@ class ExecutionPayload(BaseModel):
     attempt_id: str = Field(..., description="Unique attempt ID for idempotency")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Payload generation timestamp")
     
+    # Phase 1/2 fields
+    category_id: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    currency: Optional[str] = None
+    condition: Optional[str] = None
+    condition_description: Optional[str] = None
+    brand: Optional[str] = None
+    mpn: Optional[str] = None
+    image_urls: list[str] = Field(default_factory=list)
+    item_specifics: Dict[str, list[str]] = Field(default_factory=dict)
+    shipping_profile_id: Optional[str] = None
+    return_profile_id: Optional[str] = None
+    payment_profile_id: Optional[str] = None
+    format: str = "fixed_price"
+    quantity: int = 1
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize payload to dict"""
         return self.model_dump(mode='json')
@@ -53,3 +71,4 @@ class ExecutionPayload(BaseModel):
             attempt_id=context.get('attempt_id', ''),
             timestamp=context.get('timestamp', datetime.now(timezone.utc))
         )
+
